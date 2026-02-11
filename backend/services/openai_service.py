@@ -1,1 +1,0 @@
-#openai의 api 활성화
