@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
 import os
+import json
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -106,8 +107,7 @@ async def analyze_emotion(text: str):
             messages=[
                 {
                     "role": "system",
-                    "content": '''
-당신은 심리 분석 전문가입니다. 
+                    "content": '''당신은 심리 분석 전문가입니다. 
 사용자의 일기를 읽고 로버트 플루치크(Robert Plutchik)의 8가지 기본 감정(기쁨, 신뢰, 공포, 놀람, 슬픔, 혐오, 분노, 기대)을 기준으로 각 감정이 차지하는 비율을 0.0에서 1.0 사이의 소수로 분석하여 JSON으로 반환하세요. 
 모든 비율의 합이 1.0이 될 필요는 없습니다. 
 비율은 각 감정의 강도를 나타냅니다.
