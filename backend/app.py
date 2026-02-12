@@ -1,104 +1,129 @@
+from __future__ import annotations
+
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
 from openai import OpenAI
-import os
-import json
-from dotenv import load_dotenv
-from src.prompts import get_prompt_for_diary_writing
-from src.prompts import get_prompt_for_emotion_analysis
-from src.emotion_service import analyze_emotions
+from pydantic import BaseModel, Field
+
+from src.emotion_service import emotion_to_color, extract_emotion_tag, parse_emotion_payload
+from src.prompts import (
+    get_prompt_for_diary_writing,
+    get_prompt_for_emotion_analysis,
+    get_rag_context_prompt,
+)
+from src.rag_service import MemoryRAGStore
 
 load_dotenv()
 
 app = FastAPI()
 
-# CORS 설정 (Flutter Web에서 접근 가능하도록)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 프로덕션에서는 구체적인 도메인 지정
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+rag_store = MemoryRAGStore()
 
-# 요청 모델
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
-    messages: list[dict[str, str]]
+    messages: list[ChatMessage] = Field(default_factory=list)
+
 
 class ChatResponse(BaseModel):
     response: str
     emotion: str
     color: str
+    retrieved_contexts: list[str] = Field(default_factory=list)
+
+
+class EmotionAnalyzeRequest(BaseModel):
+    text: str
+
 
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
 
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        # OpenAI API 호출
+        if not request.messages:
+            raise HTTPException(status_code=400, detail="messages is required")
+
+        last_user_message = next(
+            (m.content for m in reversed(request.messages) if m.role == "user"),
+            request.messages[-1].content,
+        )
+
+        retrieved = rag_store.retrieve(last_user_message, k=3)
+        retrieved_contexts = [item["text"] for item in retrieved]
+
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[get_prompt_for_diary_writing(), *request.messages],
-            max_tokens=200
+            messages=[
+                get_prompt_for_diary_writing(),
+                get_rag_context_prompt(retrieved_contexts),
+                *[m.model_dump() for m in request.messages],
+            ],
+            max_tokens=250,
         )
-        
-        response_text = completion.choices[0].message.content
-        
-        # 감정 추출
-        emotion = {
-            "분노": 0.0,
-            "기대": 0.0,
-            "기쁨": 0.0,
-            "신뢰": 0.0,
-            "공포": 0.0,
-            "놀람": 0.0,
-            "슬픔": 0.0,
-            "혐오": 0.0,
-            "중립": 0.0
-        }
-        if "[EMOTION:" in response_text:
-            emotion_start = response_text.find("[EMOTION:") + 9
-            emotion_end = response_text.find("]", emotion_start)
-            emotion = response_text[emotion_start:emotion_end].strip()
-            # [EMOTION:...] 부분 제거
-            response_text = response_text.replace(f"[EMOTION:{emotion}]", "").strip()
-        
-        return ChatResponse(
-            response=response_text,
-            emotion=emotion,
-            color=analyze_emotions(emotion)
-        )
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
 
-# 감정 분석만 하는 엔드포인트 (추가 기능)
+        response_text = completion.choices[0].message.content or ""
+        clean_text, emotion = extract_emotion_tag(response_text)
+
+        # Save latest exchange in memory for next retrieval.
+        rag_store.add_memory(f"USER: {last_user_message}")
+        rag_store.add_memory(f"ASSISTANT: {clean_text}", metadata={"emotion": emotion})
+
+        return ChatResponse(
+            response=clean_text,
+            emotion=emotion,
+            color=emotion_to_color(emotion),
+            retrieved_contexts=retrieved_contexts,
+        )
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
 @app.post("/analyze-emotion")
-async def analyze_emotion(text: str):
+async def analyze_emotion(request: EmotionAnalyzeRequest):
     try:
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[ get_prompt_for_emotion_analysis(),
+            messages=[
+                get_prompt_for_emotion_analysis(),
                 {
                     "role": "user",
-                    "content": text
-                }
+                    "content": request.text,
+                },
             ],
-            max_tokens=10
+            max_tokens=100,
         )
-        
-        emotion = completion.choices[0].message.content.strip().lower()
-        emotion_json = json.loads(emotion)
+
+        emotion_raw = (completion.choices[0].message.content or "").strip()
+        emotion = parse_emotion_payload(emotion_raw)
 
         return {
             "emotion": emotion,
-            "color": EMOTION_COLORS.get(emotion, EMOTION_COLORS["neutral"])
+            "color": emotion_to_color(emotion),
+            "raw": emotion_raw,
         }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
