@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 openai==1.12.0
+httpx==0.27.2
 python-dotenv
 numpy
 sentence-transformers
