@@ -45,6 +45,7 @@ class EmotionAnalysisResponse(BaseModel):
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
 
+# 챗봇 응답 엔드포인트
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
@@ -86,7 +87,7 @@ async def chat(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-# 감정 분석만 하는 엔드포인트 (추가 기능)
+# 감정 분석만 하는 엔드포인트
 @app.post("/analyze-emotion")
 async def analyze_emotion(request: EmotionAnalysisResponse):
     try:
