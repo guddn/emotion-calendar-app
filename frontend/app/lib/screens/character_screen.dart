@@ -26,10 +26,10 @@ class MainChatScreen extends StatelessWidget {
                 ],
               ),
               child: Text(
-                textAlign: TextAlign.center,
                 '캐릭터 인터페이스',
+                textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
               ),
             ),

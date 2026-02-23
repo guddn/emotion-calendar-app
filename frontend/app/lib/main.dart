@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'screens/calendar_screen.dart';
-import 'screens/main_chat_screen.dart';
+import 'screens/character_screen.dart';
 
 void main() {
   runApp(const EmotionCalendarApp());
