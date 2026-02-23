@@ -1,20 +1,66 @@
-// main 함수입니다.
 import 'package:flutter/material.dart';
 
+import 'screens/calendar_screen.dart';
+import 'screens/main_chat_screen.dart';
+
 void main() {
-  runApp(const MainApp());
+  runApp(const EmotionCalendarApp());
 }
 
-class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+class EmotionCalendarApp extends StatelessWidget {
+  const EmotionCalendarApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        scaffoldBackgroundColor: const Color(0xFFF7F8FC),
+      ),
+      home: const RootPage(),
+    );
+  }
+}
+
+class RootPage extends StatefulWidget {
+  const RootPage({super.key});
+
+  @override
+  State<RootPage> createState() => _RootPageState();
+}
+
+class _RootPageState extends State<RootPage> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _pages = [
+    MainChatScreen(),
+    CalendarScreen(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.pets_outlined),
+            selectedIcon: Icon(Icons.pets),
+            label: '캐릭터',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month),
+            label: '캘린더',
+          ),
+        ],
       ),
     );
   }
