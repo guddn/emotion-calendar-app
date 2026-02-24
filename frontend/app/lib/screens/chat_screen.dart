@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 
 class ChatScreen extends StatefulWidget {
@@ -174,19 +175,25 @@ class _ChatScreenState extends State<ChatScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(message.text),
-                        if (!message.isMine &&
-                            message.emotion != null &&
-                            message.emotion!.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          // Text(
-                          //   '감정: ${message.emotion}',
-                          //   style: Theme.of(context)
-                          //       .textTheme
-                          //       .bodySmall
-                          //       ?.copyWith(fontWeight: FontWeight.w600),
-                          // ),
-                        ],
+                        MarkdownBody(
+                          data: message.text,
+                          selectable: true, // 텍스트 선택 가능 여부
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                        // if (!message.isMine &&
+                        //     message.emotion != null &&
+                        //     message.emotion!.isNotEmpty) ...[
+                        //   const SizedBox(height: 6),
+                        //   Text(
+                        //     '감정: ${message.emotion}',
+                        //     style: Theme.of(context)
+                        //         .textTheme
+                        //         .bodySmall
+                        //         ?.copyWith(fontWeight: FontWeight.w600),
+                        //   ),
+                        // ],
                       ],
                     ),
                   ),
