@@ -48,6 +48,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return DateTime(today.year, today.month + (page - _basePage));
   }
 
+  Future<void> _moveMonth(int delta) {
+    final targetPage = _currentPage + delta;
+    return _pageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentMonth = _monthByPage(_currentPage);
@@ -61,7 +70,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _MonthHeader(currentMonth: currentMonth),
+                _MonthHeader(
+                  currentMonth: currentMonth,
+                  onPreviousMonth: () => _moveMonth(-1),
+                  onNextMonth: () => _moveMonth(1),
+                ),
                 const SizedBox(height: 8),
                 const _WeekdayHeader(),
                 const SizedBox(height: 6),
@@ -97,9 +110,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
 }
 
 class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({required this.currentMonth});
+  const _MonthHeader({
+    required this.currentMonth,
+    required this.onPreviousMonth,
+    required this.onNextMonth,
+  });
 
   final DateTime currentMonth;
+  final VoidCallback onPreviousMonth;
+  final VoidCallback onNextMonth;
 
   @override
   Widget build(BuildContext context) {
@@ -116,12 +135,33 @@ class _MonthHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Text(
-        '${currentMonth.year}년 ${currentMonth.month}월',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
+      // child: Text(
+      //   '${currentMonth.year}년 ${currentMonth.month}월',
+      //   textAlign: TextAlign.center,
+      //   style: Theme.of(context).textTheme.titleLarge?.copyWith(
+      //         fontWeight: FontWeight.w600,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: onPreviousMonth,
+            icon: const Icon(Icons.chevron_left),
+            tooltip: '이전 달',
+          ),
+          Expanded(
+            child: Text(
+              '${currentMonth.year}년 ${currentMonth.month}월',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
+          ),
+          IconButton(
+            onPressed: onNextMonth,
+            icon: const Icon(Icons.chevron_right),
+            tooltip: '다음 달',
+          ),
+        ],
       ),
     );
   }
@@ -241,7 +281,7 @@ class _LegendCard extends StatelessWidget {
         children: const [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               _LegendItem(color: Color(0xFFFF4500), label: '분노'),
               _LegendItem(color: Color(0xFFFFA500), label: '기대'),
               _LegendItem(color: Color(0xFFFFFF00), label: '기쁨'),
@@ -250,7 +290,7 @@ class _LegendCard extends StatelessWidget {
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: const [
+            children: [
               _LegendItem(color: Color(0xFF00FF00), label: '공포'),
               _LegendItem(color: Color(0xFF00FFFF), label: '놀람'),
               _LegendItem(color: Color(0xFF0000FF), label: '슬픔'),
