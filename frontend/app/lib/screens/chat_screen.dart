@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 
+import '../data/diary.dart';
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -69,6 +71,20 @@ class _ChatScreenState extends State<ChatScreen> {
         final botText = (json['response'] as String?)?.trim();
         final emotion = (json['emotion'] as String?)?.trim();
         final colorHex = (json['color'] as String?)?.trim();
+
+        if (botText != null &&
+            botText.isNotEmpty &&
+            emotion != null &&
+            emotion.isNotEmpty &&
+            colorHex != null &&
+            colorHex.isNotEmpty) {
+          await DiaryDatabase.instance.upsertTodayDiary(
+            content: text,
+            summary: botText,
+            emotion: emotion,
+            colorHex: colorHex,
+          );
+        } 
 
         setState(() {
           _messages.add(

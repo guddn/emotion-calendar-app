@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'data/diary.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/character_screen.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await DiaryDatabase.instance.init();
   runApp(const EmotionCalendarApp());
 }
 
