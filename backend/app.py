@@ -1,7 +1,8 @@
 from __future__ import annotations
 import os
+import json
 from dotenv import load_dotenv 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel, Field
@@ -22,7 +23,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 응답 출력
+@app.middleware("http")
+async def log_responses(request: Request, call_next):
+    response = await call_next(request)
+    
+    response_body = b""
+    async for chunk in response.body_iterator:
+        response_body += chunk
+
+    try:
+        print(f"\n[Response to {request.url.path}]")
+        print(json.dumps(json.loads(response_body.decode()), indent=4, ensure_ascii=False))
+    except:
+        print(response_body.decode())
+
+    return Response(
+        content=response_body,
+        status_code=response.status_code,
+        headers=dict(response.headers),
+        media_type=response.media_type
+    )
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) #huggingface 환경변수
 rag_store = MemoryRAGStore()
 
 class ChatMessage(BaseModel):
@@ -45,7 +68,6 @@ class EmotionAnalysisResponse(BaseModel):
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
 
-# 챗봇 응답 엔드포인트
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
@@ -87,7 +109,7 @@ async def chat(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-# 감정 분석만 하는 엔드포인트
+# 감정 분석만 하는 엔드포인트 (추가 기능)
 @app.post("/analyze-emotion")
 async def analyze_emotion(request: EmotionAnalysisResponse):
     try:
