@@ -33,6 +33,7 @@ async def log_responses(request: Request, call_next):
         response_body += chunk
 
     try:
+        print("\n----------------------------------------------------------------")
         print(f"\n[Response to {request.url.path}]")
         print(json.dumps(json.loads(response_body.decode()), indent=4, ensure_ascii=False))
     except:
