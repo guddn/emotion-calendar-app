@@ -7,7 +7,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel, Field
 from src.emotion_service import emotion_to_color, extract_emotion_tag, parse_emotion_payload
-from src.prompts import get_prompt_for_diary_writing, get_prompt_for_emotion_analysis, get_rag_context_prompt
+from src.prompts import (
+    get_prompt_for_daily_summary,
+    get_prompt_for_diary_writing, 
+    get_prompt_for_emotion_analysis, 
+    get_rag_context_prompt
+    )
 from src.rag_service import MemoryRAGStore
 
 load_dotenv()
@@ -65,10 +70,14 @@ class ChatResponse(BaseModel):
 class EmotionAnalysisResponse(BaseModel):
     text: str
 
+class DailySummaryResponse(BaseModel):
+    summary: str
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
 
+# 채팅 엔드포인트
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
@@ -110,7 +119,7 @@ async def chat(request: ChatRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-# 감정 분석만 하는 엔드포인트 (추가 기능)
+# 감정 분석 엔드포인트
 @app.post("/analyze-emotion")
 async def analyze_emotion(request: EmotionAnalysisResponse):
     try:
@@ -135,5 +144,28 @@ async def analyze_emotion(request: EmotionAnalysisResponse):
             "raw": emotion_raw,
         }
         
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+# 일기 요약 엔드포인트
+@app.post("/daily-summary", response_model=DailySummaryResponse)
+async def daily_summary(request: ChatRequest):
+    try:
+        if not request.messages:
+            raise HTTPException(status_code=400, detail="messages is required")
+
+        completion = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                get_prompt_for_daily_summary(),
+                *[msg.model_dump() for msg in request.messages],
+            ],
+            max_tokens=180,
+        )
+
+        summary = (completion.choices[0].message.content or "").strip()
+        return DailySummaryResponse(summary=summary)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
