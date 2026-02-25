@@ -16,6 +16,8 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   static const String _chatApiUrl =
       'https://helloguddn-emotion-calendar-app.hf.space/chat';
+  static const String _dailySummaryApiUrl =
+      'https://helloguddn-emotion-calendar-app.hf.space/daily-summary';
 
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
@@ -72,6 +74,8 @@ class _ChatScreenState extends State<ChatScreen> {
         final emotion = (json['emotion'] as String?)?.trim();
         final colorHex = (json['color'] as String?)?.trim();
 
+        final summary = await _requestDailySummary(messagesPayload);
+
         if (botText != null &&
             botText.isNotEmpty &&
             emotion != null &&
@@ -80,7 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
             colorHex.isNotEmpty) {
           await DiaryDatabase.instance.upsertTodayDiary(
             content: text,
-            summary: botText,
+            summary: summary,
             emotion: emotion,
             colorHex: colorHex,
           );
@@ -120,6 +124,27 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       }
       _scrollToBottom();
+    }
+  }
+
+  Future<String> _requestDailySummary(
+    List<Map<String, String>> messagesPayload,
+  ) async {
+    try {
+      final response = await http.post(
+        Uri.parse(_dailySummaryApiUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'messages': messagesPayload}),
+      );
+
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        return '';
+      }
+
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return (json['summary'] as String?)?.trim() ?? '';
+    } catch (_) {
+      return '';
     }
   }
 
