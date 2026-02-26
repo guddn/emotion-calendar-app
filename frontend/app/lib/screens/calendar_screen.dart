@@ -1,6 +1,9 @@
 // 캘린더가 보여지는 인터페이스
 import 'package:flutter/material.dart';
 
+import '../data/diary.dart';
+import 'calendar_screen_dailysummary.dart';
+
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
 
@@ -57,6 +60,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
+    Future<void> _openDailySummary(DateTime date) async {
+    final diary = await DiaryDatabase.instance.getDiaryByDate(date);
+    if (!mounted) {
+      return;
+    }
+
+    await showGeneralDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: '일기 요약 닫기',
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 200),
+      pageBuilder: (_, __, ___) {
+        return CalendarDailySummaryDialog(
+          selectedDate: date,
+          diary: diary,
+        );
+      },
+      transitionBuilder: (context, animation, _, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.08),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentMonth = _monthByPage(_currentPage);
@@ -92,6 +129,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       return _MonthGrid(
                         month: month,
                         emotionColorByDate: _emotionColorByDate,
+                        onDateTap: _openDailySummary,
                       );
                     },
                   ),
@@ -198,10 +236,15 @@ class _WeekdayHeader extends StatelessWidget {
 }
 
 class _MonthGrid extends StatelessWidget {
-  const _MonthGrid({required this.month, required this.emotionColorByDate});
+  const _MonthGrid({
+    required this.month,
+    required this.emotionColorByDate,
+    required this.onDateTap,
+  });
 
   final DateTime month;
   final Map<DateTime, Color> emotionColorByDate;
+  final ValueChanged<DateTime> onDateTap;
 
   @override
   Widget build(BuildContext context) {
@@ -241,18 +284,25 @@ class _MonthGrid extends StatelessWidget {
           final date = DateTime(month.year, month.month, day);
           final color = emotionColorByDate[date];
 
-          return DecoratedBox(
-            decoration: BoxDecoration(
-              color: color ?? const Color(0xFFF2F3F7),
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => onDateTap(date),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFDDE1EA)),
-            ),
-            child: Center(
-              child: Text(
-                '$day',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: color ?? const Color(0xFFF2F3F7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFDDE1EA)),
+                ),
+                child: Center(
+                  child: Text(
+                    '$day',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
               ),
             ),
           );
