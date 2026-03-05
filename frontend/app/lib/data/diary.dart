@@ -1,6 +1,4 @@
 //isar로 database 구현
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
@@ -26,26 +24,57 @@ class DiaryDatabase {
   static final DiaryDatabase instance = DiaryDatabase._();
 
   Isar? _isar;
+  Future<void>? _initFuture;
 
   Future<void> init() async {
     if (_isar != null && _isar!.isOpen) {
       return;
     }
 
-    final directory = await _resolveDirectory();
+    _initFuture ??= _openIsar();
+    try {
+      await _initFuture;
+    } catch (_) {
+      _initFuture = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _openIsar() async {
+    final directoryPath = await _resolveDirectoryPath();
+
     _isar = await Isar.open(
       [DiarySchema],
-      directory: directory.path,
+      directory: directoryPath,
       name: 'emotion_calendar_db',
       inspector: kDebugMode,
     );
   }
 
-  Future<Directory> _resolveDirectory() async {
-    if (Platform.isIOS || Platform.isAndroid || Platform.isMacOS) {
-      return getApplicationDocumentsDirectory();
+  Future<Isar?> _getReadyIsar() async {
+    try {
+      await init();
+    } catch (e, st) {
+      debugPrint('Isar init failed: $e');
+      debugPrintStack(stackTrace: st);
+      return null;
     }
-    return getApplicationSupportDirectory();
+
+    final isar = _isar;
+    if (isar == null || !isar.isOpen) {
+      return null;
+    }
+
+    return isar;
+  }
+
+  Future<String> _resolveDirectoryPath() async {
+    if (kIsWeb) {
+      return '';
+    }
+
+    final directory = await getApplicationSupportDirectory();
+    return directory.path;
   }
 
   DateTime normalizeDate(DateTime date) => DateTime(date.year, date.month, date.day);

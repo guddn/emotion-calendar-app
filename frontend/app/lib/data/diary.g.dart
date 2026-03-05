@@ -15,7 +15,7 @@ extension GetDiaryCollection on Isar {
 
 const DiarySchema = CollectionSchema(
   name: r'Diary',
-  id: -5216934141026337743,
+  id: -5216934141026337792,
   properties: {
     r'colorHex': PropertySchema(
       id: 0,
@@ -50,7 +50,7 @@ const DiarySchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'date': IndexSchema(
-      id: -7552997827385218417,
+      id: -7552997827385218048,
       name: r'date',
       unique: true,
       replace: false,
