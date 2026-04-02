@@ -1,7 +1,9 @@
 from __future__ import annotations
 import os
 import json
-from dotenv import load_dotenv 
+from contextlib import asynccontextmanager
+from datetime import date as date_type
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
@@ -9,15 +11,22 @@ from pydantic import BaseModel, Field
 from src.emotion_service import emotion_to_color, extract_emotion_tag, parse_emotion_payload
 from src.prompts import (
     get_prompt_for_daily_summary,
-    get_prompt_for_diary_writing, 
-    get_prompt_for_emotion_analysis, 
+    get_prompt_for_diary_writing,
+    get_prompt_for_emotion_analysis,
     get_rag_context_prompt
     )
 from src.rag_service import MemoryRAGStore
+from src import database
 
 load_dotenv()
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await database.create_pool()
+    yield
+    await database.close_pool()
+
+app = FastAPI(lifespan=lifespan)
 
 # CORS 설정
 app.add_middleware(
@@ -66,6 +75,24 @@ class ChatResponse(BaseModel):
     emotion: str
     color: str
     retrieval_context: list[str] = Field(default_factory=list)
+
+class DiaryEntry(BaseModel):
+    user_id: int
+    date: str
+    messages: list[ChatMessage]
+    summary: str | None = None
+    emotion: str | None = None
+    color: str | None = None
+
+class DiaryResponse(BaseModel):
+    id: int
+    user_id: int
+    date: str
+    messages: list
+    summary: str | None
+    emotion: str | None
+    color: str | None
+    created_at: str
 
 class EmotionAnalysisResponse(BaseModel):
     text: str
@@ -165,6 +192,55 @@ async def daily_summary(request: ChatRequest):
 
         summary = (completion.choices[0].message.content or "").strip()
         return DailySummaryResponse(summary=summary)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+def _row_to_diary_response(row: dict) -> DiaryResponse:
+    return DiaryResponse(
+        id=row["id"],
+        user_id=row["user_id"],
+        date=row["date"],
+        messages=row["messages"],
+        summary=row["summary"],
+        emotion=row["emotion"],
+        color=row["color"],
+        created_at=row["created_at"],
+    )
+
+# 사용자의 일기를 저장하는 엔드포인트
+@app.post("/diary", response_model=DiaryResponse)
+async def save_diary(entry: DiaryEntry):
+    try:
+        date_type.fromisoformat(entry.date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
+    try:
+        row = await database.save_diary(
+            user_id=entry.user_id,
+            date=entry.date,
+            messages=[m.model_dump() for m in entry.messages],
+            summary=entry.summary,
+            emotion=entry.emotion,
+            color=entry.color,
+        )
+        return _row_to_diary_response(row)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+# 사용자의 일기를 조회하는 엔드포인트
+@app.get("/diary", response_model=DiaryResponse)
+async def get_diary(user_id: int, date: str):
+    try:
+        date_type.fromisoformat(date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
+    try:
+        row = await database.get_diary_by_user_and_date(user_id, date)
+        if row is None:
+            raise HTTPException(status_code=404, detail="해당 날짜의 일기를 찾을 수 없습니다.")
+        return _row_to_diary_response(row)
     except HTTPException:
         raise
     except Exception as e:
