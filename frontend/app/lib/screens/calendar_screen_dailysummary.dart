@@ -1,8 +1,7 @@
 import 'dart:ui';
 
+import 'package:emotion_calendar/data/diary.dart';
 import 'package:flutter/material.dart';
-
-import '../data/diary.dart';
 
 class CalendarDailySummaryDialog extends StatelessWidget {
   const CalendarDailySummaryDialog({
@@ -12,7 +11,7 @@ class CalendarDailySummaryDialog extends StatelessWidget {
   });
 
   final DateTime selectedDate;
-  final Diary? diary;
+  final DiaryModel? diary;
 
   @override
   Widget build(BuildContext context) {
@@ -88,11 +87,11 @@ class CalendarDailySummaryDialog extends StatelessWidget {
 class _DiarySummaryCard extends StatelessWidget {
   const _DiarySummaryCard({required this.diary});
 
-  final Diary diary;
+  final DiaryModel diary;
 
   @override
   Widget build(BuildContext context) {
-    final emotionColor = _hexToColor(diary.colorHex) ?? const Color(0xFFEEF1F6);
+    final emotionColor = _hexToColor(diary.color ?? '') ?? const Color(0xFFEEF1F6);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,7 +104,7 @@ class _DiarySummaryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            '대표 감정: ${diary.emotion}',
+            '대표 감정: ${diary.emotion ?? '없음'}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -121,7 +120,7 @@ class _DiarySummaryCard extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          diary.summary,
+          diary.summary ?? '요약 없음',
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],

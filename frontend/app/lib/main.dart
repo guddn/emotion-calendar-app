@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 
-import 'data/diary.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/character_screen.dart';
 
@@ -35,13 +34,6 @@ Future<void> main() async {
   };
 
   await runZonedGuarded(() async {
-    try {
-      await DiaryDatabase.instance.init();
-    } catch (e, st) {
-      debugPrint('DiaryDatabase init failed: $e');
-      debugPrintStack(stackTrace: st);
-    }
-
     runApp(const EmotionCalendarApp());
   }, (error, stackTrace) {
     debugPrint('Uncaught app error: $error');

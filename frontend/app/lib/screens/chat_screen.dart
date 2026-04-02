@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 
-import '../data/diary.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -82,12 +81,6 @@ class _ChatScreenState extends State<ChatScreen> {
             emotion.isNotEmpty &&
             colorHex != null &&
             colorHex.isNotEmpty) {
-          await DiaryDatabase.instance.upsertTodayDiary(
-            content: text,
-            summary: summary,
-            emotion: emotion,
-            colorHex: colorHex,
-          );
         } 
 
         setState(() {

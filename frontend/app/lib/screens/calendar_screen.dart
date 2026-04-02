@@ -1,7 +1,7 @@
 // 캘린더가 보여지는 인터페이스
 import 'package:flutter/material.dart';
 
-import '../data/diary.dart';
+import '../data/diary_api_service.dart';
 import 'calendar_screen_dailysummary.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -61,10 +61,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
     Future<void> _openDailySummary(DateTime date) async {
-    final diary = await DiaryDatabase.instance.getDiaryByDate(date);
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
+
+    final diary = await DiaryApiService.fetchDiary(userId: 1, date: date);
+
+    if (!mounted) return;
 
     await showGeneralDialog<void>(
       context: context,
