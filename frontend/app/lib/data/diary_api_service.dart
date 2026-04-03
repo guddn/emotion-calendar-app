@@ -5,6 +5,36 @@ import 'diary.dart';
 class DiaryApiService {
   static const String _baseUrl = 'https://helloguddn-emotion-calendar-app.hf.space';
 
+  static Future<DiaryModel?> saveDiary({
+    required int userId,
+    required DateTime date,
+    required List<Map<String, dynamic>> messages,
+    String? summary,
+    String? emotion,
+    String? color,
+  }) async {
+    final dateStr =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+    final response = await http.post(
+      Uri.parse('$_baseUrl/diary'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'user_id': userId,
+        'date': dateStr,
+        'messages': messages,
+        'summary': summary,
+        'emotion': emotion,
+        'color': color,
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) return null;
+
+    final json = jsonDecode(utf8.decode(response.bodyBytes));
+    return DiaryModel.fromJson(json);
+  }
+
   static Future<DiaryModel?> fetchDiary({
     required int userId,
     required DateTime date,

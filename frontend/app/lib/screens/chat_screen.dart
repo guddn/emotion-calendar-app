@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
+import '../data/diary_api_service.dart';
 
 
 class ChatScreen extends StatefulWidget {
@@ -81,7 +82,17 @@ class _ChatScreenState extends State<ChatScreen> {
             emotion.isNotEmpty &&
             colorHex != null &&
             colorHex.isNotEmpty) {
-        } 
+          DiaryApiService.saveDiary(
+            userId: 1,
+            date: DateTime.now(),
+            messages: messagesPayload
+                .map((m) => Map<String, dynamic>.from(m))
+                .toList(),
+            summary: summary.isEmpty ? null : summary,
+            emotion: emotion,
+            color: colorHex,
+          ).catchError((_) => null);
+        }
 
         setState(() {
           _messages.add(
