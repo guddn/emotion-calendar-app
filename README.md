@@ -26,3 +26,19 @@ openai api 이용처
 
 추가 고려사항
 * 귀여운 디자인으로 하면 인기가 오를만한 컨텐츠인듯하다
+
+---
+## 업데이트
+2026/04/03
+- 기능추가
+   - database/schema.sql — 전체 스키마 (users, diaries schedules, prompts)
+   - database/migrations/001_initial_schema.sql — 초기 마이그레이션
+   - backend/src/repositories/init.py
+   - backend/src/repositories/users.py
+   - backend/src/repositories/diaries.py
+   - backend/src/repositories/schedules.py
+   - backend/src/repositories/prompts.py
+
+- 수정
+   - backend/src/database.py — save_diary, get_diary_by_user_and_date, _create_tables, _serialize_row 제거 → pool 관리만 남김
+   - backend/app.py — from src import database → from src.repositories import diaries as diary_repo 추가, database.save_diary / database.get_diary_by_user_and_date → diary_repo.* 로 변경
