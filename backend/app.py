@@ -17,6 +17,7 @@ from src.prompts import (
     )
 from src.rag_service import MemoryRAGStore
 from src import database
+from src.repositories import diaries as diary_repo
 
 load_dotenv()
 
@@ -217,7 +218,7 @@ async def save_diary(entry: DiaryEntry):
     except ValueError:
         raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
     try:
-        row = await database.save_diary(
+        row = await diary_repo.save_diary(
             user_id=entry.user_id,
             date=entry.date,
             messages=[m.model_dump() for m in entry.messages],
@@ -237,7 +238,7 @@ async def get_diary(user_id: int, date: str):
     except ValueError:
         raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
     try:
-        row = await database.get_diary_by_user_and_date(user_id, date)
+        row = await diary_repo.get_diary_by_user_and_date(user_id, date)
         if row is None:
             raise HTTPException(status_code=404, detail="해당 날짜의 일기를 찾을 수 없습니다.")
         return _row_to_diary_response(row)
