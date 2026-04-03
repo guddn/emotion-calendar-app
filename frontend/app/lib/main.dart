@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'screens/calendar_screen.dart';
@@ -6,39 +5,7 @@ import 'screens/character_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // await DiaryDatabase.instance.init();
-  // runApp(const EmotionCalendarApp());
-
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    Zone.current.handleUncaughtError(
-      details.exception,
-      details.stack ?? StackTrace.current,
-    );
-  };
-
-  ErrorWidget.builder = (details) {
-    return Material(
-      color: Colors.white,
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Text(
-            '화면을 표시하는 중 오류가 발생했습니다.\n\n${details.exceptionAsString()}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.red),
-          ),
-        ),
-      ),
-    );
-  };
-
-  await runZonedGuarded(() async {
-    runApp(const EmotionCalendarApp());
-  }, (error, stackTrace) {
-    debugPrint('Uncaught app error: $error');
-    debugPrintStack(stackTrace: stackTrace);
-  });
+  runApp(const EmotionCalendarApp());
 }
 
 class EmotionCalendarApp extends StatelessWidget {
@@ -75,7 +42,10 @@ class _RootPageState extends State<RootPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_selectedIndex],
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _pages,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
