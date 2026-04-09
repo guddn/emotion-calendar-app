@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/calendar_screen.dart';
 import 'screens/character_screen.dart';
+import 'screens/profile_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +38,7 @@ class _RootPageState extends State<RootPage> {
   static const List<Widget> _pages = [
     MainChatScreen(),
     CalendarScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -63,6 +65,11 @@ class _RootPageState extends State<RootPage> {
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
             label: '캘린더',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: '프로필',
           ),
         ],
       ),

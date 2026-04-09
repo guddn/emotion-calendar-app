@@ -1,6 +1,7 @@
 // 캘린더가 보여지는 인터페이스
 import 'package:flutter/material.dart';
 
+import '../data/diary.dart';
 import '../data/diary_api_service.dart';
 import 'calendar_screen_dailysummary.dart';
 
@@ -60,10 +61,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-    Future<void> _openDailySummary(DateTime date) async {
+  Future<void> _openDailySummary(DateTime date) async {
     if (!mounted) return;
 
-    final diary = await DiaryApiService.fetchDiary(userId: 1, date: date);
+    DiaryModel? diary;
+    try {
+      diary = await DiaryApiService.fetchDiary(userId: 1, date: date);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('일기 정보를 불러오는 중 오류가 발생했어요.')),
+      );
+      return;
+    }
 
     if (!mounted) return;
 
@@ -99,40 +109,62 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final currentMonth = _monthByPage(_currentPage);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: '이전 달',
+          onPressed: () => _moveMonth(-1),
+        ),
+        title: Text(
+          '${currentMonth.year}년 ${currentMonth.month}월',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: '다음 달',
+            onPressed: () => _moveMonth(1),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _MonthHeader(
-                  currentMonth: currentMonth,
-                  onPreviousMonth: () => _moveMonth(-1),
-                  onNextMonth: () => _moveMonth(1),
-                ),
                 const SizedBox(height: 8),
                 const _WeekdayHeader(),
                 const SizedBox(height: 6),
-                SizedBox(
-                  height: 320,
-                  child: PageView.builder(
-                    controller: _pageController,
-                    onPageChanged: (page) {
-                      setState(() {
-                        _currentPage = page;
-                      });
-                    },
-                    itemBuilder: (context, page) {
-                      final month = _monthByPage(page);
-                      return _MonthGrid(
-                        month: month,
-                        emotionColorByDate: _emotionColorByDate,
-                        onDateTap: _openDailySummary,
-                      );
-                    },
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: SizedBox(
+                    height: 320,
+                    child: PageView.builder(
+                      clipBehavior: Clip.none,
+                      controller: _pageController,
+                      onPageChanged: (page) {
+                        setState(() {
+                          _currentPage = page;
+                        });
+                      },
+                      itemBuilder: (context, page) {
+                        final month = _monthByPage(page);
+                        return _MonthGrid(
+                          month: month,
+                          emotionColorByDate: _emotionColorByDate,
+                          onDateTap: _openDailySummary,
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -148,63 +180,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 }
 
-class _MonthHeader extends StatelessWidget {
-  const _MonthHeader({
-    required this.currentMonth,
-    required this.onPreviousMonth,
-    required this.onNextMonth,
-  });
-
-  final DateTime currentMonth;
-  final VoidCallback onPreviousMonth;
-  final VoidCallback onNextMonth;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      // child: Text(
-      //   '${currentMonth.year}년 ${currentMonth.month}월',
-      //   textAlign: TextAlign.center,
-      //   style: Theme.of(context).textTheme.titleLarge?.copyWith(
-      //         fontWeight: FontWeight.w600,
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onPreviousMonth,
-            icon: const Icon(Icons.chevron_left),
-            tooltip: '이전 달',
-          ),
-          Expanded(
-            child: Text(
-              '${currentMonth.year}년 ${currentMonth.month}월',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ),
-          IconButton(
-            onPressed: onNextMonth,
-            icon: const Icon(Icons.chevron_right),
-            tooltip: '다음 달',
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _WeekdayHeader extends StatelessWidget {
   const _WeekdayHeader();
@@ -258,12 +233,8 @@ class _MonthGrid extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x14000000),
-            blurRadius: 10,
-            offset: Offset(0, 3),
-          ),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
         ],
       ),
       child: GridView.builder(
@@ -323,6 +294,9 @@ class _LegendCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
+        ],
       ),
       child: Wrap(
         spacing: 12,
@@ -394,6 +368,9 @@ class _DiaryHintCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFEDEBFF),
         borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
+        ],
       ),
       child: Text(
         '날짜를 탭하면 해당 일기의 감정 분석 결과를 자세히 볼 수 있어요.',

@@ -8,37 +8,20 @@ class MainChatScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('캐릭터'),
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
             child: Column(
               children: [
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x14000000),
-                        blurRadius: 10,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Text(
-                    '캐릭터 인터페이스',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-                const SizedBox(height: 20),
                 Container(
                   width: 124,
                   height: 124,
@@ -60,6 +43,9 @@ class MainChatScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: const Color(0xFFF2F4FF),
                       borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
+                      ],
                     ),
                     child: const ChatScreen(),
                   ),
