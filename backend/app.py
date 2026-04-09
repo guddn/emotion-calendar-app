@@ -18,6 +18,7 @@ from src.prompts import (
 from src.rag_service import MemoryRAGStore
 from src import database
 from src.repositories import diaries as diary_repo
+from src.repositories import schedules as schedule_repo
 
 load_dotenv()
 
@@ -242,6 +243,67 @@ async def get_diary(user_id: int, date: str):
         if row is None:
             raise HTTPException(status_code=404, detail="해당 날짜의 일기를 찾을 수 없습니다.")
         return _row_to_diary_response(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+# Schedules 관리
+
+class ScheduleCreate(BaseModel):
+    user_id: int
+    title: str
+    scheduled_at: str          # ISO 8601 (e.g. "2026-04-10T14:00:00+09:00")
+    description: str | None = None
+
+class ScheduleResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    description: str | None
+    scheduled_at: str
+    is_done: bool
+    created_at: str
+
+def _row_to_schedule_response(row: dict) -> ScheduleResponse:
+    return ScheduleResponse(
+        id=row["id"],
+        user_id=row["user_id"],
+        title=row["title"],
+        description=row["description"],
+        scheduled_at=row["scheduled_at"].isoformat() if hasattr(row["scheduled_at"], "isoformat") else row["scheduled_at"],
+        is_done=row["is_done"],
+        created_at=row["created_at"].isoformat() if hasattr(row["created_at"], "isoformat") else row["created_at"],
+    )
+
+@app.post("/schedules", response_model=ScheduleResponse, status_code=201)
+async def create_schedule(entry: ScheduleCreate):
+    try:
+        row = await schedule_repo.create_schedule(
+            user_id=entry.user_id,
+            title=entry.title,
+            scheduled_at=entry.scheduled_at,
+            description=entry.description,
+        )
+        return _row_to_schedule_response(row)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+@app.get("/schedules", response_model=list[ScheduleResponse])
+async def get_schedules(user_id: int):
+    try:
+        rows = await schedule_repo.get_schedules_by_user(user_id)
+        return [_row_to_schedule_response(row) for row in rows]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+@app.patch("/schedules/{schedule_id}/done", response_model=ScheduleResponse)
+async def mark_schedule_done(schedule_id: int):
+    try:
+        row = await schedule_repo.mark_done(schedule_id)
+        if row is None:
+            raise HTTPException(status_code=404, detail="해당 일정을 찾을 수 없습니다.")
+        return _row_to_schedule_response(row)
     except HTTPException:
         raise
     except Exception as e:
