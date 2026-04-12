@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../data/diary.dart';
 import '../data/diary_api_service.dart';
 import 'calendar_screen_dailysummary.dart';
+import 'schedule_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -16,6 +17,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static const int _basePage = 1200;
   late final PageController _pageController;
   int _currentPage = _basePage;
+
+  bool _showSchedule = false;
 
   late final Map<DateTime, Color> _emotionColorByDate;
 
@@ -114,68 +117,83 @@ class _CalendarScreenState extends State<CalendarScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.chevron_left),
-          tooltip: '이전 달',
-          onPressed: () => _moveMonth(-1),
-        ),
+        leading: _showSchedule
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: '감정 캘린더로 돌아가기',
+                onPressed: () => setState(() => _showSchedule = false),
+              )
+            : IconButton(
+                icon: const Icon(Icons.chevron_left),
+                tooltip: '이전 달',
+                onPressed: () => _moveMonth(-1),
+              ),
         title: Text(
-          '${currentMonth.year}년 ${currentMonth.month}월',
+          _showSchedule
+              ? '일정 관리'
+              : '${currentMonth.year}년 ${currentMonth.month}월',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.chevron_right),
-            tooltip: '다음 달',
-            onPressed: () => _moveMonth(1),
-          ),
+          if (!_showSchedule)
+            IconButton(
+              icon: const Icon(Icons.chevron_right),
+              tooltip: '다음 달',
+              onPressed: () => _moveMonth(1),
+            ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 8),
-                const _WeekdayHeader(),
-                const SizedBox(height: 6),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: SizedBox(
-                    height: 320,
-                    child: PageView.builder(
-                      clipBehavior: Clip.none,
-                      controller: _pageController,
-                      onPageChanged: (page) {
-                        setState(() {
-                          _currentPage = page;
-                        });
-                      },
-                      itemBuilder: (context, page) {
-                        final month = _monthByPage(page);
-                        return _MonthGrid(
-                          month: month,
-                          emotionColorByDate: _emotionColorByDate,
-                          onDateTap: _openDailySummary,
-                        );
-                      },
-                    ),
+      body: _showSchedule
+          ? const ScheduleScreen()
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 420),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 8),
+                      _ScheduleNavigateButton(
+                        onTap: () => setState(() => _showSchedule = true),
+                      ),
+                      const SizedBox(height: 10),
+                      const _WeekdayHeader(),
+                      const SizedBox(height: 6),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: SizedBox(
+                          height: 320,
+                          child: PageView.builder(
+                            clipBehavior: Clip.none,
+                            controller: _pageController,
+                            onPageChanged: (page) {
+                              setState(() {
+                                _currentPage = page;
+                              });
+                            },
+                            itemBuilder: (context, page) {
+                              final month = _monthByPage(page);
+                              return _MonthGrid(
+                                month: month,
+                                emotionColorByDate: _emotionColorByDate,
+                                onDateTap: _openDailySummary,
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const _LegendCard(),
+                      const SizedBox(height: 12),
+                      const _DiaryHintCard(),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                const _LegendCard(),
-                const SizedBox(height: 12),
-                const _DiaryHintCard(),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 }
@@ -375,6 +393,45 @@ class _DiaryHintCard extends StatelessWidget {
       child: Text(
         '날짜를 탭하면 해당 일기의 감정 분석 결과를 자세히 볼 수 있어요.',
         style: Theme.of(context).textTheme.bodyMedium,
+      ),
+    );
+  }
+}
+
+class _ScheduleNavigateButton extends StatelessWidget {
+  const _ScheduleNavigateButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('🗓️', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Text(
+              '일정 관리 캘린더 보기',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.deepPurple,
+                  ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 18, color: Colors.deepPurple),
+          ],
+        ),
       ),
     );
   }

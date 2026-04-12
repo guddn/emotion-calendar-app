@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import '../data/diary_api_service.dart';
+import '../data/schedule_api_service.dart';
 
 
 class ChatScreen extends StatefulWidget {
@@ -70,20 +71,20 @@ class _ChatScreenState extends State<ChatScreen> {
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
 
-        final botText = (json['response'] as String?)?.trim();
-        final emotion = (json['emotion'] as String?)?.trim();
-        final colorHex = (json['color'] as String?)?.trim();
+        final botText = (json['chat'] as String?)?.trim();
 
-        final summary = await _requestDailySummary(messagesPayload);
+        final emotionData = json['emotion_data'] as Map<String, dynamic>?;
+        final emotion = (emotionData?['label'] as String?)?.trim();
+        final colorHex = (emotionData?['color'] as String?)?.trim();
 
-        if (botText != null &&
-            botText.isNotEmpty &&
-            emotion != null &&
-            emotion.isNotEmpty &&
-            colorHex != null &&
-            colorHex.isNotEmpty) {
+        const int userId = 1; // TODO: 실제 사용자 ID로 교체
+        final action = json['action'] as Map<String, dynamic>?;
+        final shouldSaveDiary = action?['save_diary'] == true;
+
+        if (shouldSaveDiary && emotion != null && colorHex != null) {
+          final summary = await _requestDailySummary(messagesPayload);
           DiaryApiService.saveDiary(
-            userId: 1,
+            userId: userId,
             date: DateTime.now(),
             messages: messagesPayload
                 .map((m) => Map<String, dynamic>.from(m))
@@ -94,6 +95,21 @@ class _ChatScreenState extends State<ChatScreen> {
           ).catchError((_) => null);
         }
 
+        final addSchedule = action?['add_schedule'] as Map<String, dynamic>?;
+        if (addSchedule != null) {
+          final title = addSchedule['title'] as String?;
+          final details = addSchedule['details'] as String?;
+          final dueDate = addSchedule['due_date'] as String?;
+          if (title != null && dueDate != null) {
+            ScheduleApiService.saveSchedule(
+              userId: userId,
+              title: title,
+              description: details,
+              dueDate: dueDate,
+            ).catchError((_) => null);
+          }
+        }
+
         setState(() {
           _messages.add(
             _ChatMessage(
@@ -101,8 +117,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   ? '응답을 받지 못했어요. 다시 시도해 주세요.'
                   : botText,
               isMine: false,
-              emotion: (emotion == null || emotion.isEmpty) ? null : emotion,
-              colorHex: (colorHex == null || colorHex.isEmpty) ? null : colorHex,
+              emotion: emotion,
+              colorHex: colorHex,
             ),
           );
         });
@@ -188,7 +204,7 @@ class _ChatScreenState extends State<ChatScreen> {
         Expanded(
           child: ListView.separated(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
             itemBuilder: (context, index) {
               final message = _messages[index];
               final bubbleColor = message.isMine
@@ -199,47 +215,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 alignment: message.isMine
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x12000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        MarkdownBody(
-                          data: message.text,
-                          selectable: true, // 텍스트 선택 가능 여부
-                          styleSheet: MarkdownStyleSheet(
-                            p: const TextStyle(fontSize: 16),
-                          ),
-                        ),
-                        // if (!message.isMine &&
-                        //     message.emotion != null &&
-                        //     message.emotion!.isNotEmpty) ...[
-                        //   const SizedBox(height: 6),
-                        //   Text(
-                        //     '감정: ${message.emotion}',
-                        //     style: Theme.of(context)
-                        //         .textTheme
-                        //         .bodySmall
-                        //         ?.copyWith(fontWeight: FontWeight.w600),
-                        //   ),
-                        // ],
-                      ],
+                child: _BubbleWithTail(
+                  isMine: message.isMine,
+                  color: bubbleColor,
+                  child: MarkdownBody(
+                    data: message.text,
+                    selectable: true,
+                    styleSheet: MarkdownStyleSheet(
+                      p: const TextStyle(fontSize: 16),
                     ),
                   ),
                 ),
@@ -311,4 +294,102 @@ class _ChatMessage {
   final bool isMine;
   final String? emotion;
   final String? colorHex;
+}
+
+class _BubbleWithTail extends StatelessWidget {
+  const _BubbleWithTail({
+    required this.isMine,
+    required this.color,
+    required this.child,
+  });
+
+  final bool isMine;
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: _BubblePainter(isMine: isMine, color: color),
+      child: Container(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.72,
+        ),
+        margin: EdgeInsets.only(
+          left: isMine ? 0 : 8,
+          right: isMine ? 8 : 0,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _BubblePainter extends CustomPainter {
+  _BubblePainter({required this.isMine, required this.color});
+
+  final bool isMine;
+  final Color color;
+
+  static const double _radius = 14;
+  static const double _tailWidth = 8;
+  static const double _tailHeight = 0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final shadowPaint = Paint()
+      ..color = const Color(0x12000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    final path = _buildPath(size);
+    canvas.drawPath(path, shadowPaint);
+    canvas.drawPath(path, paint);
+  }
+
+  Path _buildPath(Size size) {
+    final w = size.width;
+    final h = size.height;
+    final r = _radius;
+    final tw = _tailWidth;
+    final th = _tailHeight;
+
+    final path = Path();
+
+    if (isMine) {
+      // 오른쪽 상단 꼬리 (말풍선 바깥 오른쪽으로 튀어나옴)
+      path.moveTo(r, 0);
+      path.lineTo(w, 0);
+      path.lineTo(w + tw, -th); // 꼬리 끝
+      path.lineTo(w, r);
+      path.lineTo(w, h - r);
+      path.arcToPoint(Offset(w - r, h), radius: Radius.circular(r));
+      path.lineTo(r, h);
+      path.arcToPoint(Offset(0, h - r), radius: Radius.circular(r));
+      path.lineTo(0, r);
+      path.arcToPoint(Offset(r, 0), radius: Radius.circular(r));
+    } else {
+      // 왼쪽 상단 꼬리 (말풍선 바깥 왼쪽으로 튀어나옴)
+      path.moveTo(0, r);
+      path.lineTo(-tw, -th); // 꼬리 끝
+      path.lineTo(0, 0);
+      path.lineTo(w - r, 0);
+      path.arcToPoint(Offset(w, r), radius: Radius.circular(r));
+      path.lineTo(w, h - r);
+      path.arcToPoint(Offset(w - r, h), radius: Radius.circular(r));
+      path.lineTo(r, h);
+      path.arcToPoint(Offset(0, h - r), radius: Radius.circular(r));
+    }
+
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldRepaint(_BubblePainter oldDelegate) =>
+      oldDelegate.isMine != isMine || oldDelegate.color != color;
 }

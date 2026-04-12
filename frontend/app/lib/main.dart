@@ -17,7 +17,7 @@ class EmotionCalendarApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF673AB7)),
         scaffoldBackgroundColor: const Color(0xFFF7F8FC),
       ),
       home: const RootPage(),

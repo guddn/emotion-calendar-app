@@ -104,7 +104,7 @@ class _DiarySummaryCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
-            '대표 감정: ${diary.emotion ?? '없음'}',
+            '그 날의 감정: ${diary.emotion ?? '없음'}',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
