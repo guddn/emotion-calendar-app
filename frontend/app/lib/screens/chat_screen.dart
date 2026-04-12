@@ -55,8 +55,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      final messagesPayload = _messages
-          .map((message) => {
+      const int userId = 1; // TODO: 실제 사용자 ID로 교체
+
+      final List<Map<String, dynamic>> messagesPayload = _messages
+          .map((message) => <String, dynamic>{
                 'role': message.isMine ? 'user' : 'assistant',
                 'content': message.text,
               })
@@ -65,7 +67,10 @@ class _ChatScreenState extends State<ChatScreen> {
       final response = await http.post(
         Uri.parse(_chatApiUrl),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'messages': messagesPayload}),
+        body: jsonEncode({
+          'user_id': userId,
+          'messages': messagesPayload
+          }),
       );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -73,22 +78,24 @@ class _ChatScreenState extends State<ChatScreen> {
 
         final botText = (json['chat'] as String?)?.trim();
 
-        final emotionData = json['emotion_data'] as Map<String, dynamic>?;
-        final emotion = (emotionData?['label'] as String?)?.trim();
-        final colorHex = (emotionData?['color'] as String?)?.trim();
+        final emotion = (json['emotion'] as String?)?.trim();
+        final colorHex = (json['color'] as String?)?.trim();
 
-        const int userId = 1; // TODO: 실제 사용자 ID로 교체
         final action = json['action'] as Map<String, dynamic>?;
         final shouldSaveDiary = action?['save_diary'] == true;
 
         if (shouldSaveDiary && emotion != null && colorHex != null) {
-          final summary = await _requestDailySummary(messagesPayload);
+          // 봇 응답까지 포함한 전체 대화로 저장
+          final fullMessages = [
+            ...messagesPayload,
+            if (botText != null && botText.isNotEmpty)
+              {'role': 'assistant', 'content': botText},
+          ];
+          final summary = await _requestDailySummary(fullMessages);
           DiaryApiService.saveDiary(
             userId: userId,
             date: DateTime.now(),
-            messages: messagesPayload
-                .map((m) => Map<String, dynamic>.from(m))
-                .toList(),
+            messages: fullMessages,
             summary: summary.isEmpty ? null : summary,
             emotion: emotion,
             color: colorHex,
@@ -148,7 +155,7 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _requestDailySummary(
-    List<Map<String, String>> messagesPayload,
+    List<Map<String, dynamic>> messagesPayload,
   ) async {
     try {
       final response = await http.post(

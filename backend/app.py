@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 from pydantic import BaseModel, Field
-from src.emotion_service import emotion_to_color, extract_emotion_tag, parse_emotion_payload
+from src.emotion_service import emotion_to_color
 from src.prompts import (
     get_prompt_for_daily_summary,
     get_prompt_for_diary_writing,
@@ -18,6 +18,7 @@ from src.prompts import (
 from src.rag_service import MemoryRAGStore
 from src import database
 from src.repositories import diaries as diary_repo
+from src.repositories import schedules as schedule_repo
 
 load_dotenv()
 
@@ -42,7 +43,7 @@ app.add_middleware(
 @app.middleware("http")
 async def log_responses(request: Request, call_next):
     response = await call_next(request)
-    
+
     response_body = b""
     async for chunk in response.body_iterator:
         response_body += chunk
@@ -70,16 +71,29 @@ class ChatMessage(BaseModel):
 
 # 요청 모델
 class ChatRequest(BaseModel):
+    user_id: int
     messages: list[ChatMessage] = Field(default_factory=list)
+
+class AddSchedule(BaseModel):
+    title: str
+    description: str
+    due_date: str
+
+class ChatAction(BaseModel):
+    save_diary: bool = False
+    add_schedule: AddSchedule | None = None
+
 class ChatResponse(BaseModel):
-    response: str
+    type: str
+    chat: str
     emotion: str
     color: str
+    action: ChatAction | None = None
     retrieval_context: list[str] = Field(default_factory=list)
 
 class DiaryEntry(BaseModel):
     user_id: int
-    date: str
+    date: date_type
     messages: list[ChatMessage]
     summary: str | None = None
     emotion: str | None = None
@@ -88,7 +102,7 @@ class DiaryEntry(BaseModel):
 class DiaryResponse(BaseModel):
     id: int
     user_id: int
-    date: str
+    date: date_type
     messages: list
     summary: str | None
     emotion: str | None
@@ -120,37 +134,66 @@ async def chat(request: ChatRequest):
         retrieved = rag_store.retrieve(last_user_message, k=3)
         retrieved_contexts = [item["text"] for item in retrieved]
 
-
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[get_prompt_for_diary_writing(), 
+            messages=[get_prompt_for_diary_writing(),
                       get_rag_context_prompt(retrieved_contexts),
                       *[msg.model_dump() for msg in request.messages]],
-            max_tokens=250,
+            max_tokens=500,
+            response_format={"type": "json_object"},
         )
-        
-        response_text = completion.choices[0].message.content or ""
-        clean_text, emotion = extract_emotion_tag(response_text)
+
+        response_text = (completion.choices[0].message.content or "").strip()
+        # LLM이 마크다운 코드블록으로 감쌀 경우 제거
+        if response_text.startswith("```"):
+            response_text = response_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
+
+        parsed = json.loads(response_text)
+        chat_text = parsed.get("chat", "")
+        response_type = parsed.get("type", "diary")
+        emotion_data = parsed.get("emotion_data") or {}
+        emotion = emotion_data.get("label", "중립")
+        action_data = parsed.get("action")
+        action = None
+        if action_data:
+            add_schedule_data = action_data.get("add_schedule")
+            action = ChatAction(
+                save_diary=action_data.get("save_diary", False),
+                add_schedule=AddSchedule(**add_schedule_data) if add_schedule_data else None,
+            )
+
+        if action and action.add_schedule:
+            s = action.add_schedule
+            await schedule_repo.create_schedule(
+                user_id=request.user_id,
+                title=s.title,
+                scheduled_at=s.due_date,
+                description=s.description,
+            )
 
         rag_store.add_memory(f"USER: {last_user_message}")
-        rag_store.add_memory(f"ASSISTANT: {clean_text}", metadata={"emotion": emotion})
+        rag_store.add_memory(f"ASSISTANT: {chat_text}", metadata={"emotion": emotion})
 
         return ChatResponse(
-            response=clean_text,
+            type=response_type,
+            chat=chat_text,
             emotion=emotion,
             color=emotion_to_color(emotion),
-            retrieval_context=retrieved_contexts
+            action=action,
+            retrieval_context=retrieved_contexts,
         )
-    
+
     except HTTPException:
-        raise 
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 # 감정 분석 엔드포인트
+# 사용 안함
 @app.post("/analyze-emotion")
 async def analyze_emotion(request: EmotionAnalysisResponse):
     try:
+        from src.emotion_service import parse_emotion_payload
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -162,7 +205,7 @@ async def analyze_emotion(request: EmotionAnalysisResponse):
             ],
             max_tokens=100,
         )
-        
+
         emotion_raw = (completion.choices[0].message.content or "").strip()
         emotion = parse_emotion_payload(emotion_raw)
 
@@ -171,7 +214,7 @@ async def analyze_emotion(request: EmotionAnalysisResponse):
             "color": emotion_to_color(emotion),
             "raw": emotion_raw,
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -214,10 +257,6 @@ def _row_to_diary_response(row: dict) -> DiaryResponse:
 @app.post("/diary", response_model=DiaryResponse)
 async def save_diary(entry: DiaryEntry):
     try:
-        date_type.fromisoformat(entry.date)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
-    try:
         row = await diary_repo.save_diary(
             user_id=entry.user_id,
             date=entry.date,
@@ -233,10 +272,6 @@ async def save_diary(entry: DiaryEntry):
 # 사용자의 일기를 조회하는 엔드포인트
 @app.get("/diary", response_model=DiaryResponse)
 async def get_diary(user_id: int, date: str):
-    try:
-        date_type.fromisoformat(date)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="date는 YYYY-MM-DD 형식이어야 합니다.")
     try:
         row = await diary_repo.get_diary_by_user_and_date(user_id, date)
         if row is None:

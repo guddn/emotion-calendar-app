@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS diaries (
     messages    JSONB       NOT NULL,
     summary     TEXT,
     emotion     VARCHAR(20),
-    color_code  VARCHAR(7),
+    color       VARCHAR(7),
     created_at  TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE (user_id, date)
 );

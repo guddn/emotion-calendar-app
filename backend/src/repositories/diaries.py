@@ -27,16 +27,21 @@ async def save_diary(
     emotion: str | None,
     color: str | None,
 ) -> dict[str, Any]:
+    
+    if isinstance(date, str):
+        # 문자열로 들어왔다면 date 객체로 변환
+        date = datetime.strptime(date, "%Y-%m-%d").date()
+
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
-            INSERT INTO diaries (user_id, date, messages, summary, emotion, color_code)
+            INSERT INTO diaries (user_id, date, messages, summary, emotion, color)
             VALUES ($1, $2, $3::jsonb, $4, $5, $6)
             ON CONFLICT (user_id, date) DO UPDATE SET
                 messages   = EXCLUDED.messages,
                 summary    = EXCLUDED.summary,
                 emotion    = EXCLUDED.emotion,
-                color_code = EXCLUDED.color_code,
+                color = EXCLUDED.color,
                 created_at = NOW()
             RETURNING *
             """,
@@ -52,8 +57,13 @@ async def save_diary(
 
 async def get_diary_by_user_and_date(
     user_id: int,
-    date: str,
+    date: date_type,
 ) -> dict[str, Any] | None:
+
+    if isinstance(date, str):
+        # 문자열로 들어왔다면 date 객체로 변환
+        date = datetime.strptime(date, "%Y-%m-%d").date()
+        
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             "SELECT * FROM diaries WHERE user_id = $1 AND date = $2",

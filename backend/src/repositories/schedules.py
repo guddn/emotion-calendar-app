@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from typing import Any
 
 from src.database import get_pool
@@ -8,9 +9,14 @@ from src.database import get_pool
 async def create_schedule(
     user_id: int,
     title: str,
-    scheduled_at: str,
+    scheduled_at: date,
     description: str | None = None,
 ) -> dict[str, Any]:
+    
+    if isinstance(scheduled_at, str):
+        # 문자열로 들어왔다면 date 객체로 변환
+        scheduled_at = datetime.strptime(scheduled_at, "%Y-%m-%d").date()
+
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             """
