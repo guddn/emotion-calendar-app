@@ -5,7 +5,9 @@ import '../data/schedule_api_service.dart';
 import 'schedule_screen_popup.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  const ScheduleScreen({super.key, this.onGoToEmotion});
+
+  final VoidCallback? onGoToEmotion;
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -38,6 +40,15 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return DateTime(today.year, today.month + (page - _basePage));
   }
 
+  Future<void> _moveMonth(int delta) {
+    final targetPage = _currentPage + delta;
+    return _pageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
   Future<void> _loadSchedules(DateTime month) async {
     setState(() => _isLoading = true);
     try {
@@ -67,15 +78,6 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  Future<void> _moveMonth(int delta) {
-    final targetPage = _currentPage + delta;
-    return _pageController.animateToPage(
-      targetPage,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-    );
   }
 
   Future<void> _openScheduleDetail(DateTime date) async {
@@ -128,68 +130,73 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   Widget build(BuildContext context) {
     final currentMonth = _monthByPage(_currentPage);
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 4),
-              // 월 이동 헤더
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    tooltip: '이전 달',
-                    onPressed: () => _moveMonth(-1),
-                  ),
-                  Text(
-                    '${currentMonth.year}년 ${currentMonth.month}월',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    tooltip: '다음 달',
-                    onPressed: () => _moveMonth(1),
-                  ),
-                ],
+    return Scaffold(
+      appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: '이전 달',
+          onPressed: () => _moveMonth(-1),
+        ),
+        title: Text(
+          '${currentMonth.year}년 ${currentMonth.month}월',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 4),
-              const _WeekdayHeader(),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: SizedBox(
-                  height: 310,
-                  child: _isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : PageView.builder(
-                          clipBehavior: Clip.none,
-                          controller: _pageController,
-                          onPageChanged: (page) {
-                            setState(() => _currentPage = page);
-                            _loadSchedules(_monthByPage(page));
-                          },
-                          itemBuilder: (context, page) {
-                            final month = _monthByPage(page);
-                            return _ScheduleMonthGrid(
-                              month: month,
-                              schedulesByDate: _schedulesByDate,
-                              onDateTap: _openScheduleDetail,
-                            );
-                          },
-                        ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: '다음 달',
+            onPressed: () => _moveMonth(1),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 8),
+                _ScheduleNavigateButton(
+                  onTap: widget.onGoToEmotion ?? () {},
                 ),
-              ),
-              const SizedBox(height: 14),
-              const _ScheduleHintCard(),
-            ],
+                const SizedBox(height: 10),
+                const _WeekdayHeader(),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: SizedBox(
+                    height: 320,
+                    child: _isLoading
+                        ? const Center(child: CircularProgressIndicator())
+                        : PageView.builder(
+                            clipBehavior: Clip.none,
+                            controller: _pageController,
+                            onPageChanged: (page) {
+                              setState(() => _currentPage = page);
+                              _loadSchedules(_monthByPage(page));
+                            },
+                            itemBuilder: (context, page) {
+                              final month = _monthByPage(page);
+                              return _ScheduleMonthGrid(
+                                month: month,
+                                schedulesByDate: _schedulesByDate,
+                                onDateTap: _openScheduleDetail,
+                              );
+                            },
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const _ScheduleHintCard(),
+              ],
+            ),
           ),
         ),
       ),
@@ -370,3 +377,43 @@ class _ScheduleHintCard extends StatelessWidget {
     );
   }
 }
+
+class _ScheduleNavigateButton extends StatelessWidget {
+  const _ScheduleNavigateButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('💜', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Text(
+              '감정관리 캘린더 보기',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.deepPurple,
+                  ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right, size: 18, color: Colors.deepPurple),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

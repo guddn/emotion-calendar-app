@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'screens/calendar_screen.dart';
 import 'screens/character_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/schedule_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,11 +36,16 @@ class RootPage extends StatefulWidget {
 class _RootPageState extends State<RootPage> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _pages = [
-    MainChatScreen(),
-    CalendarScreen(),
-    ProfileScreen(),
-  ];
+  List<Widget> get _pages => [
+        const MainChatScreen(),
+        CalendarScreen(
+          onGoToSchedule: () => setState(() => _selectedIndex = 2),
+        ),
+        ScheduleScreen(
+          onGoToEmotion: () => setState(() => _selectedIndex = 1),
+        ),
+        const ProfileScreen(),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +70,12 @@ class _RootPageState extends State<RootPage> {
           NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
-            label: '캘린더',
+            label: '감정 캘린더',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.event_note_outlined),
+            selectedIcon: Icon(Icons.event_note),
+            label: '일정 캘린더',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

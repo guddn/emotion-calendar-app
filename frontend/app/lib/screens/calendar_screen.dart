@@ -4,10 +4,11 @@ import 'package:flutter/material.dart';
 import '../data/diary.dart';
 import '../data/diary_api_service.dart';
 import 'calendar_screen_dailysummary.dart';
-import 'schedule_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({super.key, this.onGoToSchedule});
+
+  final VoidCallback? onGoToSchedule;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -17,8 +18,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   static const int _basePage = 1200;
   late final PageController _pageController;
   int _currentPage = _basePage;
-
-  bool _showSchedule = false;
 
   late final Map<DateTime, Color> _emotionColorByDate;
 
@@ -35,6 +34,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.dispose();
   }
 
+  DateTime _monthByPage(int page) {
+    final today = DateTime.now();
+    return DateTime(today.year, today.month + (page - _basePage));
+  }
+
+  Future<void> _moveMonth(int delta) {
+    final targetPage = _currentPage + delta;
+    return _pageController.animateToPage(
+      targetPage,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+    );
+  }
+
   Map<DateTime, Color> _buildMockEmotionColors() {
     final now = DateTime.now();
     final base = DateTime(now.year, now.month);
@@ -48,20 +61,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       DateTime(base.year, base.month, 14): const Color(0xFFFFF59D),
       DateTime(base.year, base.month, 19): const Color(0xFFE6EE9C),
     };
-  }
-
-  DateTime _monthByPage(int page) {
-    final today = DateTime.now();
-    return DateTime(today.year, today.month + (page - _basePage));
-  }
-
-  Future<void> _moveMonth(int delta) {
-    final targetPage = _currentPage + delta;
-    return _pageController.animateToPage(
-      targetPage,
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-    );
   }
 
   Future<void> _openDailySummary(DateTime date) async {
@@ -117,37 +116,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: _showSchedule
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back),
-                tooltip: '감정 캘린더로 돌아가기',
-                onPressed: () => setState(() => _showSchedule = false),
-              )
-            : IconButton(
-                icon: const Icon(Icons.chevron_left),
-                tooltip: '이전 달',
-                onPressed: () => _moveMonth(-1),
-              ),
+        leading: IconButton(
+          icon: const Icon(Icons.chevron_left),
+          tooltip: '이전 달',
+          onPressed: () => _moveMonth(-1),
+        ),
         title: Text(
-          _showSchedule
-              ? '일정 관리'
-              : '${currentMonth.year}년 ${currentMonth.month}월',
+          '${currentMonth.year}년 ${currentMonth.month}월',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
         ),
         actions: [
-          if (!_showSchedule)
-            IconButton(
-              icon: const Icon(Icons.chevron_right),
-              tooltip: '다음 달',
-              onPressed: () => _moveMonth(1),
-            ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right),
+            tooltip: '다음 달',
+            onPressed: () => _moveMonth(1),
+          ),
         ],
       ),
-      body: _showSchedule
-          ? const ScheduleScreen()
-          : SingleChildScrollView(
+      body: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
               child: Center(
                 child: ConstrainedBox(
@@ -156,8 +144,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const SizedBox(height: 8),
-                      _ScheduleNavigateButton(
-                        onTap: () => setState(() => _showSchedule = true),
+                      _EmotionNavigateButton(
+                        onTap: widget.onGoToSchedule ?? () {},
                       ),
                       const SizedBox(height: 10),
                       const _WeekdayHeader(),
@@ -398,8 +386,8 @@ class _DiaryHintCard extends StatelessWidget {
   }
 }
 
-class _ScheduleNavigateButton extends StatelessWidget {
-  const _ScheduleNavigateButton({required this.onTap});
+class _EmotionNavigateButton extends StatelessWidget {
+  const _EmotionNavigateButton({required this.onTap});
 
   final VoidCallback onTap;
 
