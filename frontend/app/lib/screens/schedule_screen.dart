@@ -18,8 +18,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   late final PageController _pageController;
   int _currentPage = _basePage;
 
-  // date → list of schedules
-  Map<DateTime, List<ScheduleModel>> _schedulesByDate = {};
+  // "YYYY-MM" → (date → list of schedules)
+  final Map<String, Map<DateTime, List<ScheduleModel>>> _schedulesByMonth = {};
   bool _isLoading = false;
 
   @override
@@ -49,11 +49,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  String _monthKey(DateTime month) =>
+      '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
   Future<void> _loadSchedules(DateTime month) async {
+    final key = _monthKey(month);
+    if (_schedulesByMonth.containsKey(key)) return;
     setState(() => _isLoading = true);
     try {
       final list = await ScheduleApiService.fetchSchedulesByMonth(
-        userId: 1, // TODO: 실제 사용자 ID로 교체
+        userId: 1,
         year: month.year,
         month: month.month,
       );
@@ -62,16 +67,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       for (final s in list) {
         final parts = s.dueDate.split('-');
         if (parts.length != 3) continue;
-        final key = DateTime(
+        final date = DateTime(
           int.parse(parts[0]),
           int.parse(parts[1]),
           int.parse(parts[2]),
         );
-        byDate.putIfAbsent(key, () => []).add(s);
+        byDate.putIfAbsent(date, () => []).add(s);
       }
 
       if (mounted) {
-        setState(() => _schedulesByDate = byDate);
+        setState(() => _schedulesByMonth[key] = byDate);
       }
     } catch (_) {
       // 조회 실패 시 빈 상태 유지
@@ -186,7 +191,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                               final month = _monthByPage(page);
                               return _ScheduleMonthGrid(
                                 month: month,
-                                schedulesByDate: _schedulesByDate,
+                                schedulesByDate:
+                                    _schedulesByMonth[_monthKey(month)] ?? {},
                                 onDateTap: _openScheduleDetail,
                               );
                             },

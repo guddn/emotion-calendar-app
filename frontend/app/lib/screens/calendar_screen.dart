@@ -19,13 +19,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
   late final PageController _pageController;
   int _currentPage = _basePage;
 
-  late final Map<DateTime, Color> _emotionColorByDate;
+  final Map<String, Map<DateTime, Color>> _emotionsByMonth = {};
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController(initialPage: _basePage);
-    _emotionColorByDate = _buildMockEmotionColors();
+    _loadEmotionColors(_monthByPage(_basePage));
   }
 
   @override
@@ -39,6 +39,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return DateTime(today.year, today.month + (page - _basePage));
   }
 
+  String _monthKey(DateTime month) =>
+      '${month.year}-${month.month.toString().padLeft(2, '0')}';
+
   Future<void> _moveMonth(int delta) {
     final targetPage = _currentPage + delta;
     return _pageController.animateToPage(
@@ -48,19 +51,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Map<DateTime, Color> _buildMockEmotionColors() {
-    final now = DateTime.now();
-    final base = DateTime(now.year, now.month);
-    return {
-      DateTime(base.year, base.month, 1): const Color(0xFFFFCC80),
-      DateTime(base.year, base.month, 2): const Color(0xFF81D4FA),
-      DateTime(base.year, base.month, 3): const Color(0xFFA5D6A7),
-      DateTime(base.year, base.month, 5): const Color(0xFFFFAB91),
-      DateTime(base.year, base.month, 8): const Color(0xFFCE93D8),
-      DateTime(base.year, base.month, 12): const Color(0xFF80CBC4),
-      DateTime(base.year, base.month, 14): const Color(0xFFFFF59D),
-      DateTime(base.year, base.month, 19): const Color(0xFFE6EE9C),
-    };
+  Future<void> _loadEmotionColors(DateTime month) async {
+    final key = _monthKey(month);
+    if (_emotionsByMonth.containsKey(key)) return;
+    final colors = await DiaryApiService.fetchEmotionsByMonth(
+      userId: 1,
+      month: month,
+    );
+    if (mounted) setState(() => _emotionsByMonth[key] = colors);
   }
 
   Future<void> _openDailySummary(DateTime date) async {
@@ -158,15 +156,15 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             clipBehavior: Clip.none,
                             controller: _pageController,
                             onPageChanged: (page) {
-                              setState(() {
-                                _currentPage = page;
-                              });
+                              setState(() => _currentPage = page);
+                              _loadEmotionColors(_monthByPage(page));
                             },
                             itemBuilder: (context, page) {
                               final month = _monthByPage(page);
                               return _MonthGrid(
                                 month: month,
-                                emotionColorByDate: _emotionColorByDate,
+                                emotionColorByDate:
+                                    _emotionsByMonth[_monthKey(month)] ?? {},
                                 onDateTap: _openDailySummary,
                               );
                             },

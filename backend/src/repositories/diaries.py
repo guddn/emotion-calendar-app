@@ -63,7 +63,7 @@ async def get_diary_by_user_and_date(
     if isinstance(date, str):
         # 문자열로 들어왔다면 date 객체로 변환
         date = datetime.strptime(date, "%Y-%m-%d").date()
-        
+
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(
             "SELECT * FROM diaries WHERE user_id = $1 AND date = $2",
@@ -71,3 +71,21 @@ async def get_diary_by_user_and_date(
             date,
         )
         return _serialize_row(row) if row else None
+
+
+async def get_diaries_by_month(user_id: int, month: str) -> list[dict[str, Any]]:
+    """month: 'YYYY-MM' — date/emotion/color만 반환"""
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT date, emotion, color FROM diaries
+            WHERE user_id = $1 AND to_char(date, 'YYYY-MM') = $2
+            ORDER BY date
+            """,
+            user_id,
+            month,
+        )
+        return [
+            {"date": str(row["date"]), "emotion": row["emotion"], "color": row["color"]}
+            for row in rows
+        ]

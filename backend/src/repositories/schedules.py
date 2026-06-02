@@ -41,6 +41,37 @@ async def get_schedules_by_user(user_id: int) -> list[dict[str, Any]]:
         return [dict(row) for row in rows]
 
 
+async def get_schedules_by_month(user_id: int, month: str) -> list[dict[str, Any]]:
+    """month: 'YYYY-MM'"""
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT * FROM schedules
+            WHERE user_id = $1
+              AND to_char(scheduled_at AT TIME ZONE 'Asia/Seoul', 'YYYY-MM') = $2
+            ORDER BY scheduled_at
+            """,
+            user_id,
+            month,
+        )
+        return [dict(row) for row in rows]
+
+
+async def get_schedules_by_date(user_id: int, date: date) -> list[dict[str, Any]]:
+    async with get_pool().acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT * FROM schedules
+            WHERE user_id = $1
+              AND (scheduled_at AT TIME ZONE 'Asia/Seoul')::date = $2
+            ORDER BY scheduled_at
+            """,
+            user_id,
+            date,
+        )
+        return [dict(row) for row in rows]
+
+
 async def mark_done(schedule_id: int) -> dict[str, Any] | None:
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(

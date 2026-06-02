@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'diary.dart';
 
@@ -54,5 +55,40 @@ class DiaryApiService {
 
     final json = jsonDecode(utf8.decode(response.bodyBytes));
     return DiaryModel.fromJson(json);
+  }
+
+  /// 해당 월의 날짜별 감정 색상을 반환합니다.
+  static Future<Map<DateTime, Color>> fetchEmotionsByMonth({
+    required int userId,
+    required DateTime month,
+  }) async {
+    final monthStr =
+        '${month.year}-${month.month.toString().padLeft(2, '0')}';
+    final uri = Uri.parse('$_baseUrl/diary/month')
+        .replace(queryParameters: {'user_id': '$userId', 'month': monthStr});
+
+    final response = await http.get(uri);
+    if (response.statusCode != 200) return {};
+
+    final List<dynamic> list = jsonDecode(utf8.decode(response.bodyBytes));
+    final Map<DateTime, Color> result = {};
+    for (final item in list) {
+      final parts = ((item['date'] as String?) ?? '').split('-');
+      if (parts.length != 3) continue;
+      final date = DateTime(
+        int.parse(parts[0]),
+        int.parse(parts[1]),
+        int.parse(parts[2]),
+      );
+      final hex = (item['color'] as String?) ?? '';
+      if (hex.isNotEmpty) result[date] = _colorFromHex(hex);
+    }
+    return result;
+  }
+
+  static Color _colorFromHex(String hex) {
+    var v = hex.replaceFirst('#', '').trim();
+    if (v.length == 6) v = 'FF$v';
+    return Color(int.tryParse(v, radix: 16) ?? 0xFFFFFFFF);
   }
 }

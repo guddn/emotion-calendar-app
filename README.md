@@ -53,3 +53,23 @@ openai api 이용처
 - 수정
    - date 변수와 datetime의 date 객체의 충돌 문제 해결
    - 백엔드 API 응답 json 형식으로 수정
+
+2026/05/28
+- 기능 변경
+   - 감정관리, 일정관리 탭 분리
+
+2026/06/02
+- 기능 추가
+   - calendar_screen.dart
+      - _emotionColorByDate: Map<DateTimem Color> (단일 mock) → _emotionsByMonth: Map<String, Map<DateTime, Color>> (월별 캐시)
+      - _loadEmotionColors(month) 추가 — 이미 로드된 달은 재요청 안 함
+      - onPageChanged에서 _loadEmotionColors 호출
+      - itemBuilder에서 _emotionsByMonth[_monthKey(month)] 전달
+   - schedule_screen.dart
+      - _schedulesByDate: Map<DateTime, List> (단일 flat map) → _schedulesByMonth: Map<String, Map<DateTime, List>> (월별 캐시)
+      - _loadSchedules에서 이미 로드된 달은 재요청 안 함, 결과를 해당 월 키로 저장
+      - itemBuilder에서 _schedulesByMonth[_monthKey(month)] 전달
+   - 백엔드
+      - diaries.py: get_diaries_by_month(user_id, month) 추가
+      - app.py: GET /diary/month?user_id=&month=YYYY-MM 엔드포인트 추가
+      - diary_api_service.dart: fetchEmotionsByMonth() 추가

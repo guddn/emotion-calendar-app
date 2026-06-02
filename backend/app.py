@@ -109,6 +109,20 @@ class DiaryResponse(BaseModel):
     color: str | None
     created_at: str
 
+class ScheduleResponse(BaseModel):
+    id: int
+    user_id: int
+    title: str
+    description: str | None
+    scheduled_at: str
+    is_done: bool
+    created_at: str
+
+class DiaryMonthEntry(BaseModel):
+    date: str
+    emotion: str | None
+    color: str | None
+
 class EmotionAnalysisResponse(BaseModel):
     text: str
 
@@ -269,6 +283,15 @@ async def save_diary(entry: DiaryEntry):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
+# 월별 감정 색상 조회 엔드포인트 (캘린더 렌더링용)
+@app.get("/diary/month", response_model=list[DiaryMonthEntry])
+async def get_diaries_by_month(user_id: int, month: str):
+    try:
+        rows = await diary_repo.get_diaries_by_month(user_id, month)
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 # 사용자의 일기를 조회하는 엔드포인트
 @app.get("/diary", response_model=DiaryResponse)
 async def get_diary(user_id: int, date: str):
@@ -277,6 +300,34 @@ async def get_diary(user_id: int, date: str):
         if row is None:
             raise HTTPException(status_code=404, detail="해당 날짜의 일기를 찾을 수 없습니다.")
         return _row_to_diary_response(row)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
+def _row_to_schedule_response(row: dict) -> ScheduleResponse:
+    return ScheduleResponse(
+        id=row["id"],
+        user_id=row["user_id"],
+        title=row["title"],
+        description=row["description"],
+        scheduled_at=str(row["scheduled_at"])[:10],
+        is_done=row["is_done"],
+        created_at=str(row["created_at"]),
+    )
+
+# 일정 조회 엔드포인트 — month(YYYY-MM) 또는 date(YYYY-MM-DD) 중 하나 필수
+@app.get("/schedule", response_model=list[ScheduleResponse])
+async def get_schedules(user_id: int, month: str | None = None, date: str | None = None):
+    try:
+        if month is not None:
+            rows = await schedule_repo.get_schedules_by_month(user_id, month)
+        elif date is not None:
+            from datetime import datetime as dt
+            rows = await schedule_repo.get_schedules_by_date(user_id, dt.strptime(date, "%Y-%m-%d").date())
+        else:
+            raise HTTPException(status_code=400, detail="month 또는 date 쿼리 파라미터가 필요합니다.")
+        return [_row_to_schedule_response(r) for r in rows]
     except HTTPException:
         raise
     except Exception as e:
