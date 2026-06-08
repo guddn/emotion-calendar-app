@@ -73,3 +73,14 @@ openai api 이용처
       - diaries.py: get_diaries_by_month(user_id, month) 추가
       - app.py: GET /diary/month?user_id=&month=YYYY-MM 엔드포인트 추가
       - diary_api_service.dart: fetchEmotionsByMonth() 추가
+
+2026/06/08
+- 기능 추가
+   - backend
+      - login endpoint 추가
+      - 이메일과 닉네임으로 로그인
+   - frontend
+      - UserModel, UserApiService.login() 추가
+      - login_screen.dart 추가
+      - main.dart에 초기화면으로 추가
+      - character_screen.dart, chat_screen.dart, calendar_screen.dart, schedule_screen.dart에 userID 파라미터 추가
