@@ -33,6 +33,16 @@ async def get_user_by_id(user_id: int) -> dict[str, Any] | None:
         return dict(row) if row else None
 
 
+async def get_user_by_email_and_nickname(email: str, nickname: str) -> dict[str, Any] | None:
+    async with get_pool().acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM users WHERE email = $1 AND nickname = $2",
+            email,
+            nickname,
+        )
+        return dict(row) if row else None
+
+
 async def get_user_by_provider_id(auth_provider_id: str) -> dict[str, Any] | None:
     async with get_pool().acquire() as conn:
         row = await conn.fetchrow(

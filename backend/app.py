@@ -19,6 +19,7 @@ from src.rag_service import MemoryRAGStore
 from src import database
 from src.repositories import diaries as diary_repo
 from src.repositories import schedules as schedule_repo
+from src.repositories import users as user_repo
 
 load_dotenv()
 
@@ -129,9 +130,25 @@ class EmotionAnalysisResponse(BaseModel):
 class DailySummaryResponse(BaseModel):
     summary: str
 
+class LoginRequest(BaseModel):
+    email: str
+    nickname: str
+
+class LoginResponse(BaseModel):
+    id: int
+    email: str
+    nickname: str
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
+
+@app.post("/login", response_model=LoginResponse)
+async def login(request: LoginRequest):
+    user = await user_repo.get_user_by_email_and_nickname(request.email, request.nickname)
+    if user is None:
+        raise HTTPException(status_code=401, detail="등록되지 않은 사용자입니다.")
+    return LoginResponse(id=user["id"], email=user["email"], nickname=user["nickname"])
 
 # 채팅 엔드포인트
 @app.post("/chat", response_model=ChatResponse)
@@ -283,15 +300,6 @@ async def save_diary(entry: DiaryEntry):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
-# 월별 감정 색상 조회 엔드포인트 (캘린더 렌더링용)
-@app.get("/diary/month", response_model=list[DiaryMonthEntry])
-async def get_diaries_by_month(user_id: int, month: str):
-    try:
-        rows = await diary_repo.get_diaries_by_month(user_id, month)
-        return rows
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
 # 사용자의 일기를 조회하는 엔드포인트
 @app.get("/diary", response_model=DiaryResponse)
 async def get_diary(user_id: int, date: str):
@@ -304,6 +312,16 @@ async def get_diary(user_id: int, date: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+# 월별 감정 색상 조회 엔드포인트 (캘린더 렌더링용)
+@app.get("/diary/month", response_model=list[DiaryMonthEntry])
+async def get_diaries_by_month(user_id: int, month: str):
+    try:
+        rows = await diary_repo.get_diaries_by_month(user_id, month)
+        return rows
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 def _row_to_schedule_response(row: dict) -> ScheduleResponse:
     return ScheduleResponse(
