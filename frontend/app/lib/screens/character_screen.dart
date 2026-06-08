@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'chat_screen.dart';
 
 class MainChatScreen extends StatelessWidget {
-  const MainChatScreen({super.key});
+  const MainChatScreen({super.key, required this.userId});
+
+  final int userId;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +49,7 @@ class MainChatScreen extends StatelessWidget {
                         BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
                       ],
                     ),
-                    child: const ChatScreen(),
+                    child: ChatScreen(userId: userId),
                   ),
                 ),
               ],

@@ -6,9 +6,16 @@ import '../data/diary_api_service.dart';
 import 'calendar_screen_dailysummary.dart';
 
 class CalendarScreen extends StatefulWidget {
-  const CalendarScreen({super.key, this.onGoToSchedule});
+  const CalendarScreen({
+    super.key,
+    required this.userId,
+    this.onGoToSchedule,
+    this.isActive = false,
+  });
 
+  final int userId;
   final VoidCallback? onGoToSchedule;
+  final bool isActive;
 
   @override
   State<CalendarScreen> createState() => _CalendarScreenState();
@@ -26,6 +33,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
     super.initState();
     _pageController = PageController(initialPage: _basePage);
     _loadEmotionColors(_monthByPage(_basePage));
+  }
+
+  @override
+  void didUpdateWidget(CalendarScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      final month = _monthByPage(_currentPage);
+      _emotionsByMonth.remove(_monthKey(month));
+      _loadEmotionColors(month);
+    }
   }
 
   @override
@@ -55,7 +72,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final key = _monthKey(month);
     if (_emotionsByMonth.containsKey(key)) return;
     final colors = await DiaryApiService.fetchEmotionsByMonth(
-      userId: 1,
+      userId: widget.userId,
       month: month,
     );
     if (mounted) setState(() => _emotionsByMonth[key] = colors);
@@ -66,7 +83,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     DiaryModel? diary;
     try {
-      diary = await DiaryApiService.fetchDiary(userId: 1, date: date);
+      diary = await DiaryApiService.fetchDiary(userId: widget.userId, date: date);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

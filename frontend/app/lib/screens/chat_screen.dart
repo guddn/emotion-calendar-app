@@ -4,11 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:http/http.dart' as http;
 import '../data/diary_api_service.dart';
-import '../data/schedule_api_service.dart';
 
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({super.key});
+  const ChatScreen({super.key, required this.userId});
+
+  final int userId;
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -55,7 +56,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _scrollToBottom();
 
     try {
-      const int userId = 1; // TODO: 실제 사용자 ID로 교체
+      final int userId = widget.userId;
 
       final List<Map<String, dynamic>> messagesPayload = _messages
           .map((message) => <String, dynamic>{
@@ -102,20 +103,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ).catchError((_) => null);
         }
 
-        final addSchedule = action?['add_schedule'] as Map<String, dynamic>?;
-        if (addSchedule != null) {
-          final title = addSchedule['title'] as String?;
-          final details = addSchedule['details'] as String?;
-          final dueDate = addSchedule['due_date'] as String?;
-          if (title != null && dueDate != null) {
-            ScheduleApiService.saveSchedule(
-              userId: userId,
-              title: title,
-              description: details,
-              dueDate: dueDate,
-            ).catchError((_) => null);
-          }
-        }
+
 
         setState(() {
           _messages.add(

@@ -5,9 +5,16 @@ import '../data/schedule_api_service.dart';
 import 'schedule_screen_popup.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key, this.onGoToEmotion});
+  const ScheduleScreen({
+    super.key,
+    required this.userId,
+    this.onGoToEmotion,
+    this.isActive = false,
+  });
 
+  final int userId;
   final VoidCallback? onGoToEmotion;
+  final bool isActive;
 
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
@@ -27,6 +34,16 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     super.initState();
     _pageController = PageController(initialPage: _basePage);
     _loadSchedules(_monthByPage(_basePage));
+  }
+
+  @override
+  void didUpdateWidget(ScheduleScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      final month = _monthByPage(_currentPage);
+      _schedulesByMonth.remove(_monthKey(month));
+      _loadSchedules(month);
+    }
   }
 
   @override
@@ -58,7 +75,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     setState(() => _isLoading = true);
     try {
       final list = await ScheduleApiService.fetchSchedulesByMonth(
-        userId: 1,
+        userId: widget.userId,
         year: month.year,
         month: month.month,
       );
@@ -91,7 +108,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     List<ScheduleModel> schedules = [];
     try {
       schedules = await ScheduleApiService.fetchSchedulesByDate(
-        userId: 1, // TODO: 실제 사용자 ID로 교체
+        userId: widget.userId,
         date: date,
       );
     } catch (_) {
@@ -159,7 +176,11 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Column(
+        children: [
+          if (_isLoading) const LinearProgressIndicator(minHeight: 2),
+          Expanded(
+            child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
         child: Center(
           child: ConstrainedBox(
@@ -178,25 +199,23 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   child: SizedBox(
                     height: 320,
-                    child: _isLoading
-                        ? const Center(child: CircularProgressIndicator())
-                        : PageView.builder(
-                            clipBehavior: Clip.none,
-                            controller: _pageController,
-                            onPageChanged: (page) {
-                              setState(() => _currentPage = page);
-                              _loadSchedules(_monthByPage(page));
-                            },
-                            itemBuilder: (context, page) {
-                              final month = _monthByPage(page);
-                              return _ScheduleMonthGrid(
-                                month: month,
-                                schedulesByDate:
-                                    _schedulesByMonth[_monthKey(month)] ?? {},
-                                onDateTap: _openScheduleDetail,
-                              );
-                            },
-                          ),
+                    child: PageView.builder(
+                      clipBehavior: Clip.none,
+                      controller: _pageController,
+                      onPageChanged: (page) {
+                        setState(() => _currentPage = page);
+                        _loadSchedules(_monthByPage(page));
+                      },
+                      itemBuilder: (context, page) {
+                        final month = _monthByPage(page);
+                        return _ScheduleMonthGrid(
+                          month: month,
+                          schedulesByDate:
+                              _schedulesByMonth[_monthKey(month)] ?? {},
+                          onDateTap: _openScheduleDetail,
+                        );
+                      },
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -205,6 +224,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             ),
           ),
         ),
+      ),
+          ),
+        ],
       ),
     );
   }

@@ -5,29 +5,6 @@ import 'schedule.dart';
 class ScheduleApiService {
   static const String _baseUrl = 'https://helloguddn-emotion-calendar-app.hf.space';
 
-  static Future<ScheduleModel?> saveSchedule({
-    required int userId,
-    required String title,
-    String? description,
-    required String dueDate, // YYYY-MM-DD
-  }) async {
-    final response = await http.post(
-      Uri.parse('$_baseUrl/schedule'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'user_id': userId,
-        'title': title,
-        'description': description,
-        'due_date': dueDate,
-      }),
-    );
-
-    if (response.statusCode != 200 && response.statusCode != 201) return null;
-
-    final json = jsonDecode(utf8.decode(response.bodyBytes));
-    return ScheduleModel.fromJson(json);
-  }
-
   static Future<List<ScheduleModel>> fetchSchedulesByMonth({
     required int userId,
     required int year,

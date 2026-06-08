@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'screens/calendar_screen.dart';
 import 'screens/character_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/schedule_screen.dart';
 
@@ -21,13 +22,15 @@ class EmotionCalendarApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF673AB7)),
         scaffoldBackgroundColor: const Color(0xFFF7F8FC),
       ),
-      home: const RootPage(),
+      home: const LoginScreen(),
     );
   }
 }
 
 class RootPage extends StatefulWidget {
-  const RootPage({super.key});
+  const RootPage({super.key, required this.userId});
+
+  final int userId;
 
   @override
   State<RootPage> createState() => _RootPageState();
@@ -37,12 +40,16 @@ class _RootPageState extends State<RootPage> {
   int _selectedIndex = 0;
 
   List<Widget> get _pages => [
-        const MainChatScreen(),
+        MainChatScreen(userId: widget.userId),
         CalendarScreen(
+          userId: widget.userId,
           onGoToSchedule: () => setState(() => _selectedIndex = 2),
+          isActive: _selectedIndex == 1,
         ),
         ScheduleScreen(
+          userId: widget.userId,
           onGoToEmotion: () => setState(() => _selectedIndex = 1),
+          isActive: _selectedIndex == 2,
         ),
         const ProfileScreen(),
       ];
