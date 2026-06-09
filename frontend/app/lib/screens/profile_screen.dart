@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -58,7 +59,11 @@ class ProfileScreen extends StatelessWidget {
                 icon: Icons.logout,
                 label: '로그아웃',
                 color: Colors.redAccent,
-                onTap: () {},
+                onTap: () => Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (_) => false,
+                ),
               ),
             ]),
             const SizedBox(height: 32),
