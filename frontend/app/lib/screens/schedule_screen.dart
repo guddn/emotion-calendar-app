@@ -316,15 +316,17 @@ class _ScheduleMonthGrid extends StatelessWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: daySchedules.isNotEmpty
-                      ? const Color(0xFFEDEBFF)
+                      ? const Color(0xFFFFF8E1)
                       : const Color(0xFFF2F3F7),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFDDE1EA)),
                 ),
-                child: Padding(
+                child: ClipRect(
+                  child: Padding(
                   padding: const EdgeInsets.all(4),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         '$day',
@@ -336,48 +338,38 @@ class _ScheduleMonthGrid extends StatelessWidget {
                       ),
                       if (daySchedules.isNotEmpty) ...[
                         const SizedBox(height: 2),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (final s in daySchedules.take(2))
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 2),
-                                  child: Text(
-                                    s.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodySmall
-                                        ?.copyWith(
-                                          fontSize: 9,
-                                          color: Colors.deepPurple.shade700,
-                                        ),
-                                  ),
+                        for (final s in daySchedules.take(2))
+                          Text(
+                            s.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  fontSize: 9,
+                                  color: Colors.amber.shade700,
                                 ),
-                              if (daySchedules.length > 2)
-                                Text(
-                                  '+${daySchedules.length - 2}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodySmall
-                                      ?.copyWith(
-                                        fontSize: 9,
-                                        color: Colors.grey.shade500,
-                                      ),
-                                ),
-                            ],
                           ),
-                        ),
+                        if (daySchedules.length > 2)
+                          Text(
+                            '+${daySchedules.length - 2}',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(
+                                  fontSize: 9,
+                                  color: Colors.grey.shade500,
+                                ),
+                          ),
                       ],
                     ],
                   ),
                 ),
               ),
             ),
-          );
+          ),
+        );
         },
       ),
     );
@@ -392,7 +384,7 @@ class _ScheduleHintCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEBFF),
+        color: const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(14),
         boxShadow: const [
           BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 2)),
@@ -427,17 +419,17 @@ class _ScheduleNavigateButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('💜', style: TextStyle(fontSize: 18)),
+            const Text('💛', style: TextStyle(fontSize: 18)),
             const SizedBox(width: 8),
             Text(
               '감정관리 캘린더 보기',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Colors.deepPurple,
+                    color: Colors.amber.shade800,
                   ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 18, color: Colors.deepPurple),
+            Icon(Icons.chevron_right, size: 18, color: Colors.amber.shade800),
           ],
         ),
       ),

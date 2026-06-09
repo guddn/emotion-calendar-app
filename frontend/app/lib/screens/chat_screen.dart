@@ -93,17 +93,17 @@ class _ChatScreenState extends State<ChatScreen> {
               {'role': 'assistant', 'content': botText},
           ];
           final summary = await _requestDailySummary(fullMessages);
-          DiaryApiService.saveDiary(
-            userId: userId,
-            date: DateTime.now(),
-            messages: fullMessages,
-            summary: summary.isEmpty ? null : summary,
-            emotion: emotion,
-            color: colorHex,
-          ).catchError((_) => null);
+          try {
+            await DiaryApiService.saveDiary(
+              userId: userId,
+              date: DateTime.now(),
+              messages: fullMessages,
+              summary: summary.isEmpty ? null : summary,
+              emotion: emotion,
+              color: colorHex,
+            );
+          } catch (_) {}
         }
-
-
 
         setState(() {
           _messages.add(
@@ -203,7 +203,7 @@ class _ChatScreenState extends State<ChatScreen> {
             itemBuilder: (context, index) {
               final message = _messages[index];
               final bubbleColor = message.isMine
-                  ? Colors.deepPurple.shade100
+                  ? Colors.amber.shade100
                   : _colorFromHex(message.colorHex).withOpacity(0.18);
 
               return Align(

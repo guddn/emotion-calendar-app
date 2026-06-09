@@ -116,7 +116,7 @@ class _ScheduleItem extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEBFF),
+        color: const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -130,7 +130,7 @@ class _ScheduleItem extends StatelessWidget {
                     : Icons.radio_button_unchecked,
                 size: 16,
                 color: schedule.isDone
-                    ? Colors.deepPurple
+                    ? Colors.amber.shade800
                     : Colors.grey.shade500,
               ),
               const SizedBox(width: 6),

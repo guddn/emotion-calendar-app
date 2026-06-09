@@ -73,14 +73,14 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.pets, size: 80, color: Colors.deepPurple),
+                  Icon(Icons.pets, size: 80, color: Colors.amber.shade800),
                   const SizedBox(height: 12),
                   Text(
                     '감정 캘린더',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: Colors.deepPurple,
+                          color: Colors.amber.shade800,
                         ),
                   ),
                   const SizedBox(height: 40),

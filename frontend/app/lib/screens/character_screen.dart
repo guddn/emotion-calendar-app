@@ -12,7 +12,6 @@ class MainChatScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('캐릭터'),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -25,17 +24,22 @@ class MainChatScreen extends StatelessWidget {
             child: Column(
               children: [
                 Container(
-                  width: 124,
-                  height: 124,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDEBFF),
-                    borderRadius: BorderRadius.circular(999),
+                    shape: BoxShape.circle, // 또는 사각형일 경우 borderRadius 사용
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFE082).withOpacity(0.5),
+                        blurRadius: 25, 
+                        spreadRadius: 2,
+                      ),
+                    ],
                   ),
-                  child: const Icon(
-                    Icons.pets,
-                    size: 64,
-                    color: Colors.deepPurple,
-                  ),
+                  child: Image.asset(
+                    'lib/characters/Iro.png',
+                    width: 170,
+                    height: 170,
+                    fit: BoxFit.contain,
+                    ),
                 ),
                 const SizedBox(height: 16),
                 Expanded(
@@ -43,7 +47,7 @@ class MainChatScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF2F4FF),
+                      color: const Color(0xFFFFFDE7),
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),

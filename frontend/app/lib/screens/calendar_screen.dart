@@ -288,12 +288,18 @@ class _MonthGrid extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFDDE1EA)),
                 ),
-                child: Center(
-                  child: Text(
-                    '$day',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      '$day',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.grey.shade800,
+                          ),
+                    ),
                   ),
                 ),
               ),
@@ -387,7 +393,7 @@ class _DiaryHintCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFEDEBFF),
+        color: const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(color: Colors.black12, blurRadius: 6, offset: const Offset(0, 2)),
@@ -428,11 +434,11 @@ class _EmotionNavigateButton extends StatelessWidget {
               '일정 관리 캘린더 보기',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Colors.deepPurple,
+                    color: Colors.amber.shade800,
                   ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right, size: 18, color: Colors.deepPurple),
+            Icon(Icons.chevron_right, size: 18, color: Colors.amber.shade800),
           ],
         ),
       ),
