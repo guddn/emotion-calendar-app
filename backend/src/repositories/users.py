@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
 
 from src.database import get_pool
@@ -41,6 +42,34 @@ async def get_user_by_email_and_nickname(email: str, nickname: str) -> dict[str,
             nickname,
         )
         return dict(row) if row else None
+
+
+async def get_user_stats(user_id: int) -> dict[str, Any]:
+    """일기 수 + 연속 기록(오늘 기준 KST) 반환."""
+    async with get_pool().acquire() as conn:
+        diary_count = await conn.fetchval(
+            "SELECT COUNT(*) FROM diaries WHERE user_id = $1", user_id
+        )
+        rows = await conn.fetch(
+            """
+            SELECT DISTINCT date FROM diaries
+            WHERE user_id = $1
+            ORDER BY date DESC
+            """,
+            user_id,
+        )
+
+    today = date.today()
+    streak = 0
+    expected = today
+    for row in rows:
+        if row["date"] == expected:
+            streak += 1
+            expected -= timedelta(days=1)
+        else:
+            break
+
+    return {"diary_count": int(diary_count), "streak": streak}
 
 
 async def get_user_by_provider_id(auth_provider_id: str) -> dict[str, Any] | None:

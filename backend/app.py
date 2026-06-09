@@ -87,8 +87,8 @@ class ChatAction(BaseModel):
 class ChatResponse(BaseModel):
     type: str
     chat: str
-    emotion: str
-    color: str
+    emotion: str | None = None
+    color: str | None = None
     action: ChatAction | None = None
     retrieval_context: list[str] = Field(default_factory=list)
 
@@ -139,9 +139,18 @@ class LoginResponse(BaseModel):
     email: str
     nickname: str
 
+class UserStatsResponse(BaseModel):
+    diary_count: int
+    streak: int
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "message": "Emotion Calendar API"}
+
+@app.get("/user/stats", response_model=UserStatsResponse)
+async def get_user_stats(user_id: int):
+    stats = await user_repo.get_user_stats(user_id)
+    return UserStatsResponse(**stats)
 
 @app.post("/login", response_model=LoginResponse)
 async def login(request: LoginRequest):
@@ -165,25 +174,23 @@ async def chat(request: ChatRequest):
         retrieved = rag_store.retrieve(last_user_message, k=3)
         retrieved_contexts = [item["text"] for item in retrieved]
 
+        # 1차 호출: 채팅 응답 + action 판단
         completion = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[get_prompt_for_diary_writing(),
                       get_rag_context_prompt(retrieved_contexts),
                       *[msg.model_dump() for msg in request.messages]],
-            max_tokens=500,
+            max_tokens=800,
             response_format={"type": "json_object"},
         )
 
         response_text = (completion.choices[0].message.content or "").strip()
-        # LLM이 마크다운 코드블록으로 감쌀 경우 제거
         if response_text.startswith("```"):
             response_text = response_text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
         parsed = json.loads(response_text)
         chat_text = parsed.get("chat", "")
         response_type = parsed.get("type", "diary")
-        emotion_data = parsed.get("emotion_data") or {}
-        emotion = emotion_data.get("label", "중립")
         action_data = parsed.get("action")
         action = None
         if action_data:
@@ -202,14 +209,35 @@ async def chat(request: ChatRequest):
                 description=s.description,
             )
 
+        # 2차 호출: save_diary=true일 때만 감정 분석
+        emotion: str | None = None
+        color: str | None = None
+        if action and action.save_diary:
+            user_text = " ".join(
+                m.content for m in request.messages if m.role == "user"
+            ).strip()
+            emotion_completion = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    get_prompt_for_emotion_analysis(),
+                    {"role": "user", "content": user_text},
+                ],
+                max_tokens=100,
+                response_format={"type": "json_object"},
+            )
+            emotion_raw = (emotion_completion.choices[0].message.content or "").strip()
+            from src.emotion_service import parse_emotion_payload
+            emotion = parse_emotion_payload(emotion_raw)
+            color = emotion_to_color(emotion)
+
         rag_store.add_memory(f"USER: {last_user_message}")
-        rag_store.add_memory(f"ASSISTANT: {chat_text}", metadata={"emotion": emotion})
+        rag_store.add_memory(f"ASSISTANT: {chat_text}", metadata={"emotion": emotion or "중립"})
 
         return ChatResponse(
             type=response_type,
             chat=chat_text,
             emotion=emotion,
-            color=emotion_to_color(emotion),
+            color=color,
             action=action,
             retrieval_context=retrieved_contexts,
         )
