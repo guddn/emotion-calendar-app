@@ -284,7 +284,9 @@ class _MonthGrid extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: color ?? const Color(0xFFF2F3F7),
+                  color: color != null
+                      ? Color.lerp(Colors.white, color, 0.4)!
+                      : const Color(0xFFF2F3F7),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: const Color(0xFFDDE1EA)),
                 ),
@@ -334,19 +336,19 @@ class _LegendCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _LegendItem(color: Color(0xFFFF4500), label: '분노'),
-              _LegendItem(color: Color(0xFFFFA500), label: '기대'),
-              _LegendItem(color: Color(0xFFFFFF00), label: '기쁨'),
-              _LegendItem(color: Color(0xFF7FFF00), label: '신뢰'),
+              _LegendItem(color: Color(0xFFFFB599), label: '분노'),
+              _LegendItem(color: Color(0xFFFFDB99), label: '기대'),
+              _LegendItem(color: Color(0xFFFFFF99), label: '기쁨'),
+              _LegendItem(color: Color(0xFFCCFF99), label: '신뢰'),
             ],
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              _LegendItem(color: Color(0xFF00FF00), label: '공포'),
-              _LegendItem(color: Color(0xFF00FFFF), label: '놀람'),
-              _LegendItem(color: Color(0xFF0000FF), label: '슬픔'),
-              _LegendItem(color: Color(0xFF800080), label: '혐오'),
+              _LegendItem(color: Color(0xFF99FF99), label: '공포'),
+              _LegendItem(color: Color(0xFF99FFFF), label: '놀람'),
+              _LegendItem(color: Color(0xFF9999FF), label: '슬픔'),
+              _LegendItem(color: Color(0xFFCC99CC), label: '혐오'),
             ],
           ),
         ],

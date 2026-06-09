@@ -28,9 +28,16 @@ class EmotionCalendarApp extends StatelessWidget {
 }
 
 class RootPage extends StatefulWidget {
-  const RootPage({super.key, required this.userId});
+  const RootPage({
+    super.key,
+    required this.userId,
+    required this.email,
+    required this.nickname,
+  });
 
   final int userId;
+  final String email;
+  final String nickname;
 
   @override
   State<RootPage> createState() => _RootPageState();
@@ -51,7 +58,11 @@ class _RootPageState extends State<RootPage> {
           onGoToEmotion: () => setState(() => _selectedIndex = 1),
           isActive: _selectedIndex == 2,
         ),
-        const ProfileScreen(),
+        ProfileScreen(
+          userId: widget.userId,
+          email: widget.email,
+          nickname: widget.nickname,
+        ),
       ];
 
   @override

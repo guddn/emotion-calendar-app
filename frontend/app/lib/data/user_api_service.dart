@@ -19,9 +19,31 @@ class UserModel {
       );
 }
 
+class UserStats {
+  final int diaryCount;
+  final int streak;
+
+  const UserStats({required this.diaryCount, required this.streak});
+
+  factory UserStats.fromJson(Map<String, dynamic> json) => UserStats(
+        diaryCount: json['diary_count'] as int,
+        streak: json['streak'] as int,
+      );
+}
+
 class UserApiService {
   static const String _baseUrl =
       'https://helloguddn-emotion-calendar-app.hf.space';
+
+  static Future<UserStats> fetchStats(int userId) async {
+    final response = await http.get(
+      Uri.parse('$_baseUrl/user/stats?user_id=$userId'),
+    );
+    if (response.statusCode != 200) return const UserStats(diaryCount: 0, streak: 0);
+    return UserStats.fromJson(
+      jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>,
+    );
+  }
 
   /// 이메일 + 닉네임으로 로그인. 없는 사용자면 null 반환, 서버 오류면 예외.
   static Future<UserModel?> login({

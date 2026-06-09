@@ -48,7 +48,13 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => RootPage(userId: user.id)),
+          MaterialPageRoute(
+            builder: (_) => RootPage(
+              userId: user.id,
+              email: user.email,
+              nickname: user.nickname,
+            ),
+          ),
         );
       }
     } catch (_) {
@@ -63,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FC),
+      backgroundColor: const Color(0xFFFFFDE7),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

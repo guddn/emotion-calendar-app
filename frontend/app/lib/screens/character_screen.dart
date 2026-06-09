@@ -25,7 +25,7 @@ class MainChatScreen extends StatelessWidget {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle, // 또는 사각형일 경우 borderRadius 사용
+                    shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: const Color(0xFFFFE082).withOpacity(0.5),
